@@ -2,6 +2,7 @@ from enum import Enum
 import numpy as np
 from numpy.random import rand
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 class LatticeType(Enum):
     """The geometry of a lattice, determines the motion of particles."""
@@ -16,7 +17,16 @@ class AttractorType(Enum):
     LINE = 4
     PLANE = 5
 
-class DiffusionLimitedAggregate2D:
+def rgb(minimum, maximum, value):
+    ncol_r = 1/256
+    minimum, maximum = float(minimum), float(maximum)
+    ratio = 2 * (value-minimum) / (maximum - minimum)
+    b = int(max(0, 255*(1 - ratio)))
+    r = int(max(0, 255*(ratio - 1)))
+    g = 255 - b - r
+    return r*ncol_r, g*ncol_r, b*ncol_r
+
+class DiffusionLimitedAggregate2D(object):
     """A two-dimensional Diffusion Limited Aggregate (DLA) structure
     with associated properties such as the aggregate stickiness, the
     type of lattice and the type of attractor used.
@@ -47,6 +57,7 @@ class DiffusionLimitedAggregate2D:
             raise ValueError("Attractor type must be of a 2D topology for 2D aggregates")
         self._attractor_type = attractor_type
         self.aggregate = np.array(0)
+        self.colors = np.array(0)
         self.attractor = np.array(0)
         self.attractor_size = 1
         self.__boundary_offset = 8
@@ -115,17 +126,17 @@ class DiffusionLimitedAggregate2D:
         ppr = rand()
         if self._attractor_type == AttractorType.POINT:
             if ppr < 0.5:
-                crr_pos[0] = (int)(self.__spawn_diam*(rand() - 0.5))
+                crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
                 if ppr < 0.25:
-                    crr_pos[1] = (int)(self.__spawn_diam*0.5)
+                    crr_pos[1] = self.__spawn_diam*0.5
                 else:
-                    crr_pos[1] = -(int)(self.__spawn_diam*0.5)
+                    crr_pos[1] = -self.__spawn_diam*0.5
             else:
                 if ppr < 0.75:
-                    crr_pos[0] = (int)(self.__spawn_diam*0.5)
+                    crr_pos[0] = self.__spawn_diam*0.5
                 else:
-                    crr_pos[0] = -(int)(self.__spawn_diam*0.5)
-                crr_pos[1] = (int)(self.__spawn_diam*(rand() - 0.5))
+                    crr_pos[0] = -self.__spawn_diam*0.5
+                crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
     def __update_brownian_particle(self, crr_pos):
         mov_dir = rand()
         if self.lattice_type == LatticeType.SQUARE:
@@ -161,6 +172,24 @@ class DiffusionLimitedAggregate2D:
                     np.abs(crr_pos[1]) > (int)(self.__spawn_diam*0.5 + epsilon)):
                 crr_pos[:] = prv_pos
     def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range, att_range):
+        """Checks for collision of a particle undergoing Brownian motion with
+        the aggregate or attractor structure, and adds the particle to the
+        aggregate if a collision does occur.
+
+        Arguments:
+        ----------
+        crr_pos -- Current position of particle.
+        prv_pos -- Previous position of particle.
+        count -- Number of particles stuck to the aggregate.
+        agg_range -- A `np.arange` array with a size corresponding to number of
+        particles to generate.
+        att_range -- A `np.arange` array with a size corresponding to the size of
+        the attractor structure.
+
+        Returns:
+        --------
+        `True` if a collision occurred, `False` otherwise.
+        """
         if rand() > self._stickiness:
             return False
         # check for collision with attractor seed
@@ -193,9 +222,18 @@ class DiffusionLimitedAggregate2D:
         - nparticles -- Number of particles in the aggregate.
         - real_time_display -- Determines whether to plot the aggregate simulation
         in real time.
+
+        Returns:
+        --------
+        A tuple consisting of a copy of the aggregate particle co-ordinates and a copy
+        of the colors of each corresponding particle.
         """
         attrange = self.__initialise_attractor()
         self.aggregate = np.zeros((nparticles, 2), dtype=int)
+        # initialise colors for each particle in aggregate
+        self.colors = np.zeros(nparticles, dtype=(float, 3))
+        for idx in range(nparticles):
+            self.colors[idx] = rgb(1, 3, 1+2*idx/nparticles)
         aggrange = np.arange(nparticles)
         # current co-ordinates
         current = np.zeros(2, dtype=int)
@@ -212,3 +250,4 @@ class DiffusionLimitedAggregate2D:
             if self.__aggregate_collision(current, previous, count, aggrange, attrange):
                 count += 1
                 has_next_spawned = False
+        return self.aggregate[:], self.colors[:]
