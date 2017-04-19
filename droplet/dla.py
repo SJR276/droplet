@@ -3,6 +3,8 @@ import numpy as np
 from numpy.random import rand
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import droplet.colorprofiles as clrpr
+import droplet.external.progressbar as pb
 
 class LatticeType(Enum):
     """The geometry of a lattice, determines the motion of particles."""
@@ -16,15 +18,6 @@ class AttractorType(Enum):
     SPHERE = 3
     LINE = 4
     PLANE = 5
-
-def rgb(minimum, maximum, value):
-    ncol_r = 1/256
-    minimum, maximum = float(minimum), float(maximum)
-    ratio = 2 * (value-minimum) / (maximum - minimum)
-    b = int(max(0, 255*(1 - ratio)))
-    r = int(max(0, 255*(ratio - 1)))
-    g = 255 - b - r
-    return r*ncol_r, g*ncol_r, b*ncol_r
 
 class DiffusionLimitedAggregate2D(object):
     """A two-dimensional Diffusion Limited Aggregate (DLA) structure
@@ -214,7 +207,7 @@ class DiffusionLimitedAggregate2D(object):
                     self.__max_radius_sqd = radius_sqd
                     self.__spawn_diam = (int)(np.sqrt(radius_sqd)) + self.__boundary_offset
                 return True
-    def generate(self, nparticles, real_time_display=True):
+    def generate(self, nparticles, real_time_display=True, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
         Arguments:
@@ -232,13 +225,16 @@ class DiffusionLimitedAggregate2D(object):
         self.aggregate = np.zeros((nparticles, 2), dtype=int)
         # initialise colors for each particle in aggregate
         self.colors = np.zeros(nparticles, dtype=(float, 3))
-        for idx in range(nparticles):
-            self.colors[idx] = rgb(1, 3, 1+2*idx/nparticles)
+        clrpr.blue_through_red_stick_order(self.colors)
+        #for idx in range(nparticles):
+        #    self.colors[idx] = clrpr.rgb_blue_to_red(1, 3, 1+2*idx/nparticles)
         aggrange = np.arange(nparticles)
         # current co-ordinates
         current = np.zeros(2, dtype=int)
         has_next_spawned = False
         count = 0
+        if display_progress:
+            pbar = pb.ProgressBar(maxval=nparticles).start()
         while count < nparticles:
             if not has_next_spawned:
                 self.__spawn_brownian_particle(current)
@@ -250,4 +246,8 @@ class DiffusionLimitedAggregate2D(object):
             if self.__aggregate_collision(current, previous, count, aggrange, attrange):
                 count += 1
                 has_next_spawned = False
+                if display_progress:
+                    pbar.update(count)
+        if display_progress:
+            pbar.finish()
         return self.aggregate[:], self.colors[:]
