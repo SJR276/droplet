@@ -212,6 +212,8 @@ class DiffusionLimitedAggregate2D(object):
         - nparticles -- Number of particles in the aggregate.
         - real_time_display -- Determines whether to plot the aggregate simulation
         in real time.
+        - display_progress -- Determines whether to print a progress bar to stdout
+        showing progress to completion.
 
         Returns:
         --------
