@@ -25,7 +25,8 @@ class DiffusionLimitedAggregate2D(object):
     type of lattice and the type of attractor used.
     """
     def __init__(self, stickiness, lattice_type=LatticeType.SQUARE,
-                 attractor_type=AttractorType.POINT):
+                 attractor_type=AttractorType.POINT,
+                 color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
         """Create a `DiffusionLimitedAggregate2D` instance with specified
         properties.
 
@@ -53,6 +54,7 @@ class DiffusionLimitedAggregate2D(object):
         self.__colors = np.array(0)
         self.__attractor = np.array(0)
         self.attractor_size = 1
+        self.color_profile = color_profile
         self.__boundary_offset = 8
         self.__spawn_diam = self.__boundary_offset
         self.__max_radius_sqd = 0
@@ -204,14 +206,27 @@ class DiffusionLimitedAggregate2D(object):
                     self.__aggregate[idx2][1] == crr_pos[1]):
                 self.__push_to_aggregate(prv_pos, count)
                 return True
-    def generate(self, nparticles, real_time_display=True, display_progress=True):
+    def generate_real_time(self, nparticles, display_progress=True):
+        """Generates an aggregate consisting of `nparticles` in a real-time plot
+        using `matplotlib.animation`.
+
+        Parameters:
+        -----------
+        - nparticles -- Number of particles to generate in the aggregate.
+        - display_progress -- Determines whether to print a progress bar to stdout
+        showing progress to completion.
+
+        Returns:
+        --------
+        A tuple of the figure and axes handles for the generated plot.
+        """
+        pass
+    def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
         Arguments:
         ----------
         - nparticles -- Number of particles in the aggregate.
-        - real_time_display -- Determines whether to plot the aggregate simulation
-        in real time.
         - display_progress -- Determines whether to print a progress bar to stdout
         showing progress to completion.
 
@@ -227,6 +242,7 @@ class DiffusionLimitedAggregate2D(object):
         clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
+        previous = np.zeros(2, dtype=int)
         has_next_spawned = False
         count = 0
         if display_progress:
@@ -235,7 +251,6 @@ class DiffusionLimitedAggregate2D(object):
             if not has_next_spawned:
                 self.__spawn_brownian_particle(current)
                 has_next_spawned = True
-            previous = np.empty_like(current)
             previous[:] = current
             self.__update_brownian_particle(current)
             self.__lattice_boundary_collision(current, previous)

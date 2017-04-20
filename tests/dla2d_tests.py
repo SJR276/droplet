@@ -8,7 +8,7 @@ def simple_test(nparticles, particle_radius):
     dla_2d = drp.DiffusionLimitedAggregate2D(1.0)
     agg, col = dla_2d.generate(nparticles)
     fig, axes = plt.subplots()
-    axes.scatter(agg[:,0], agg[:,1], c=col, s=np.pi*(particle_radius)**2)
+    axes.scatter(agg[:,0], agg[:,1], c=col, s=np.pi*(particle_radius)**2, alpha=0.5, edgecolors='none')
     fig.show()
 
 simple_test(500, 5)

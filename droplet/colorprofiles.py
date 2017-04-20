@@ -1,8 +1,8 @@
 from enum import Enum
 
 class ColorProfile(Enum):
-    STICKORDER = 1
-    ORIGINDIST = 2
+    BLUETHROUGHRED = 1
+    THERMAL = 2
 
 def blue_through_red(colors):
     """Takes an array/list where the data-type is a 3-tuple
