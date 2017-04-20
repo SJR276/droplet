@@ -4,7 +4,7 @@ class ColorProfile(Enum):
     STICKORDER = 1
     ORIGINDIST = 2
 
-def blue_through_red_stick_order(colors):
+def blue_through_red(colors):
     """Takes an array/list where the data-type is a 3-tuple
     of float types and assigns each element an (r,g,b) value
     corresponding to the gradient from pure blue through to

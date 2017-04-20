@@ -43,15 +43,15 @@ class DiffusionLimitedAggregate2D(object):
         """
         if stickiness < 0.0 or stickiness > 1.0:
             raise ValueError("Stickiness of aggregate must be in [0, 1].")
-        self._stickiness = stickiness
+        self.__stickiness = stickiness
         self.lattice_type = lattice_type
         if (attractor_type == AttractorType.SPHERE or
                 attractor_type == AttractorType.PLANE):
             raise ValueError("Attractor type must be of a 2D topology for 2D aggregates")
-        self._attractor_type = attractor_type
-        self.aggregate = np.array(0)
-        self.colors = np.array(0)
-        self.attractor = np.array(0)
+        self.__attractor_type = attractor_type
+        self.__aggregate = np.array(0)
+        self.__colors = np.array(0)
+        self.__attractor = np.array(0)
         self.attractor_size = 1
         self.__boundary_offset = 8
         self.__spawn_diam = self.__boundary_offset
@@ -65,12 +65,12 @@ class DiffusionLimitedAggregate2D(object):
         --------
         The aggregate stickiness parameter.
         """
-        return self._stickiness
+        return self.__stickiness
     @stickiness.setter
     def stickiness(self, value):
         if value < 0.0 or value > 1.0:
             raise ValueError("Stickiness of aggregate must be in [0, 1].")
-        self._stickiness = value
+        self.__stickiness = value
     @property
     def attractor_type(self):
         """Returns the type of the attractor used for the aggregate's initial seed.
@@ -79,13 +79,13 @@ class DiffusionLimitedAggregate2D(object):
         --------
         Type of attractor seed.
         """
-        return self._attractor_type
+        return self.__attractor_type
     @attractor_type.setter
     def attractor_type(self, value):
         if (value == AttractorType.SPHERE or
                 value == AttractorType.PLANE):
             raise ValueError("Attractor type must be of a 2D topology for 2D aggregates")
-        self._attractor_type = value
+        self.__attractor_type = value
     @property
     def x_coords(self):
         """Returns the x co-ordinates of all particles in the aggregate. This
@@ -95,7 +95,7 @@ class DiffusionLimitedAggregate2D(object):
         --------
         The x co-ordinates of the aggregate particles.
         """
-        return self.aggregate[:,0]
+        return self.__aggregate[:,0]
     @property
     def y_coords(self):
         """Returns the y co-ordinates of all particles in the aggregate. This
@@ -105,19 +105,19 @@ class DiffusionLimitedAggregate2D(object):
         --------
         The y co-ordinates of the aggregate particles.
         """
-        return self.aggregate[:,1]
+        return self.__aggregate[:,1]
     def __initialise_attractor(self):
-        if self._attractor_type == AttractorType.POINT:
-            self.attractor = np.zeros((1,2))
+        if self.__attractor_type == AttractorType.POINT:
+            self.__attractor = np.zeros((1, 2))
             return np.arange(1)
-        elif self._attractor_type == AttractorType.LINE:
-            self.attractor = np.zeros((self.attractor_size, 2), dtype=int)
-            self.attractor[:,0] = (np.arange(self.attractor_size)
-                                   - (int)(0.5*self.attractor_size))
+        elif self.__attractor_type == AttractorType.LINE:
+            self.__attractor = np.zeros((self.attractor_size, 2), dtype=int)
+            self.__attractor[:,0] = (np.arange(self.attractor_size)
+                                     - (int)(0.5*self.attractor_size))
             return np.arange(self.attractor_size)
     def __spawn_brownian_particle(self, crr_pos):
         ppr = rand()
-        if self._attractor_type == AttractorType.POINT:
+        if self.__attractor_type == AttractorType.POINT:
             if ppr < 0.5:
                 crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
                 if ppr < 0.25:
@@ -151,7 +151,7 @@ class DiffusionLimitedAggregate2D(object):
                 crr_pos[1] += 1
             elif mov_dir >= 3.0/6.0 and mov_dir < 4.0/6.0:
                 crr_pos[0] += 1
-                crr_pos[0] -= 1
+                crr_pos[1] -= 1
             elif mov_dir >= 4.0/6.0 and mov_dir < 5.0/6.0:
                 crr_pos[0] -= 1
                 crr_pos[1] -= 1
@@ -160,10 +160,17 @@ class DiffusionLimitedAggregate2D(object):
                 crr_pos[1] += 1
     def __lattice_boundary_collision(self, crr_pos, prv_pos):
         epsilon = 2
-        if self._attractor_type == AttractorType.POINT:
+        if self.__attractor_type == AttractorType.POINT:
             if (np.abs(crr_pos[0]) > (int)(self.__spawn_diam*0.5 + epsilon) or
                     np.abs(crr_pos[1]) > (int)(self.__spawn_diam*0.5 + epsilon)):
                 crr_pos[:] = prv_pos
+    def __push_to_aggregate(self, particle, count):
+        self.__aggregate[count][0] = particle[0]
+        self.__aggregate[count][1] = particle[1]
+        radius_sqd = particle[0]**2 + particle[1]**2
+        if radius_sqd > self.__max_radius_sqd:
+            self.__max_radius_sqd = radius_sqd
+            self.__spawn_diam = 2*(int)(np.sqrt(radius_sqd)) + self.__boundary_offset
     def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range, att_range):
         """Checks for collision of a particle undergoing Brownian motion with
         the aggregate or attractor structure, and adds the particle to the
@@ -183,29 +190,19 @@ class DiffusionLimitedAggregate2D(object):
         --------
         `True` if a collision occurred, `False` otherwise.
         """
-        if rand() > self._stickiness:
+        if rand() > self.__stickiness:
             return False
         # check for collision with attractor seed
         for idx1 in att_range:
-            if (self.attractor[idx1][0] == crr_pos[0] and
-                    self.attractor[idx1][0] == crr_pos[1]):
-                self.aggregate[count][0] = prv_pos[0]
-                self.aggregate[count][1] = prv_pos[1]
-                radius_sqd = prv_pos[0]**2 + prv_pos[1]**2
-                if radius_sqd > self.__max_radius_sqd:
-                    self.__max_radius_sqd = radius_sqd
-                    self.__spawn_diam = (int)(np.sqrt(radius_sqd)) + self.__boundary_offset
+            if (self.__attractor[idx1][0] == crr_pos[0] and
+                    self.__attractor[idx1][0] == crr_pos[1]):
+                self.__push_to_aggregate(prv_pos, count)
                 return True
         # check for collision with aggregate structure
         for idx2 in agg_range:
-            if (self.aggregate[idx2][0] == crr_pos[0] and
-                    self.aggregate[idx2][1] == crr_pos[1]):
-                self.aggregate[count][0] = prv_pos[0]
-                self.aggregate[count][1] = prv_pos[1]
-                radius_sqd = prv_pos[0]**2 + prv_pos[1]**2
-                if radius_sqd > self.__max_radius_sqd:
-                    self.__max_radius_sqd = radius_sqd
-                    self.__spawn_diam = (int)(np.sqrt(radius_sqd)) + self.__boundary_offset
+            if (self.__aggregate[idx2][0] == crr_pos[0] and
+                    self.__aggregate[idx2][1] == crr_pos[1]):
+                self.__push_to_aggregate(prv_pos, count)
                 return True
     def generate(self, nparticles, real_time_display=True, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
@@ -222,14 +219,11 @@ class DiffusionLimitedAggregate2D(object):
         of the colors of each corresponding particle.
         """
         attrange = self.__initialise_attractor()
-        self.aggregate = np.zeros((nparticles, 2), dtype=int)
+        self.__aggregate = np.zeros((nparticles, 2), dtype=int)
         # initialise colors for each particle in aggregate
-        self.colors = np.zeros(nparticles, dtype=(float, 3))
-        clrpr.blue_through_red_stick_order(self.colors)
-        #for idx in range(nparticles):
-        #    self.colors[idx] = clrpr.rgb_blue_to_red(1, 3, 1+2*idx/nparticles)
+        self.__colors = np.zeros(nparticles, dtype=(float, 3))
+        clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
-        # current co-ordinates
         current = np.zeros(2, dtype=int)
         has_next_spawned = False
         count = 0
@@ -250,4 +244,4 @@ class DiffusionLimitedAggregate2D(object):
                     pbar.update(count)
         if display_progress:
             pbar.finish()
-        return self.aggregate[:], self.colors[:]
+        return self.__aggregate[:], self.__colors[:]
