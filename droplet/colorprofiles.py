@@ -10,15 +10,15 @@ def blue_through_red(colors):
     corresponding to the gradient from pure blue through to
     pure red.
 
-    Arguments:
-    ----------
+    Parameters:
+    -----------
     colors -- A list or array where `dtype=(float, 3)`.
 
     Returns:
     --------
     The modified `colors` container.
     """
-    ncolors = len(colors) - 1
+    ncolors = len(colors)
     for idx in range(ncolors):
         ratio = 2*idx/ncolors
         blue = max(0, 1-ratio)

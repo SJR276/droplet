@@ -2,13 +2,12 @@ import sys
 sys.path.append("../")
 import numpy as np
 import droplet as drp
+from droplet.plotting import plot_2d_aggregate
 import matplotlib.pyplot as plt
 
-def simple_test(nparticles, particle_radius):
-    dla_2d = drp.DiffusionLimitedAggregate2D(1.0)
-    agg, col = dla_2d.generate(nparticles)
-    fig, axes = plt.subplots()
-    axes.scatter(agg[:,0], agg[:,1], c=col, s=np.pi*(particle_radius)**2, alpha=0.5, edgecolors='none')
-    fig.show()
+def simple_test(nparticles):
+    dla_2d = drp.DiffusionLimitedAggregate2D()
+    dla_2d.generate(nparticles)
+    plot_2d_aggregate(dla_2d)
 
-simple_test(500, 5)
+simple_test(500)

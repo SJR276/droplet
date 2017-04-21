@@ -1,7 +1,9 @@
 droplet
 =======
 
-Python toolkit for creating and manipulating diffusion limited aggregate structures. NOTE THAT droplet IS STILL IN THE EARLY STAGES OF DEVELOPMENT, SUPPORT FOR THE FEATURES AND INSTALLATION STEPS SHOWN BELOW WILL BE ADDED SHORTLY.
+Python toolkit for creating and manipulating diffusion limited aggregate structures. 
+
+*Note that droplet is still in the early stages of development, support for the features and installation steps shown below will be added shortly.*
 
 Features
 --------
