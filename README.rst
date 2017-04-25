@@ -30,5 +30,5 @@ Then you can execute a simple real-time droplet simulation, such as
 .. code:: python
 
     import droplet as drp
-    dla2d = drp.DiffusionLimitedAggregate2D(stickiness=1.0)
-    dla2d.generate(nparticles=1000, real_time_display=True)
+    dla2d = drp.DiffusionLimitedAggregate2D()
+    dla2d.generate_real_time(nparticles=1000)

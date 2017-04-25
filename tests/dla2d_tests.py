@@ -10,4 +10,9 @@ def simple_test(nparticles):
     dla_2d.generate(nparticles)
     plot_2d_aggregate(dla_2d)
 
-simple_test(500)
+def real_time_test(nparticles):
+    dla2d = drp.DiffusionLimitedAggregate2D()
+    dla2d.generate_real_time(nparticles)
+
+#simple_test(500)
+real_time_test(500)

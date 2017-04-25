@@ -247,7 +247,52 @@ class DiffusionLimitedAggregate2D(object):
         --------
         A tuple of the figure and axes handles for the generated plot.
         """
-        pass
+        def real_time_sim(self):
+            attrange = self.__initialise_attractor()
+            self.__aggregate = np.zeros((nparticles, 2), dtype=int)
+            aggrange = np.arange(nparticles)
+            current = np.zeros(2, dtype=int)
+            previous = np.zeros(2, dtype=int)
+            count = 0
+            has_next_spawned = False
+            while count < nparticles:
+                if not has_next_spawned:
+                    self.__spawn_brownian_particle(current)
+                    has_next_spawned = True
+                previous = current[:]
+                self.__update_brownian_particle(current)
+                self.__lattice_boundary_collision(current, previous)
+                if self.__aggregate_collision(current, previous, count, aggrange, attrange):
+                    count += 1
+                    has_next_spawned = False
+                    yield previous[0], previous[1]
+        fig, axes = plt.subplots()
+        line = axes.scatter([], [])
+        xdata = []
+        ydata = []
+        def init_plot():
+            axes.set_xlim(-10, 10)
+            axes.set_ylim(-10, 10)
+            del xdata[:]
+            del ydata[:]
+            line.set_data(xdata, ydata)
+            return line
+        def run(data):
+            aggx, aggy = data
+            xdata.append(aggx, aggy)
+            xmin, xmax = axes.get_xlim()
+            ymin, ymax = axes.get_ylim()
+            if aggx >= xmax:
+                axes.set_xlim(xmin, 2*xmax)
+                axes.figure.canvas.draw()
+            if aggy >= ymax:
+                axes.set_ylim(ymin, 2*ymax)
+                axes.figure.canvas.draw()
+            line.set_data(xdata, ydata)
+            return line
+        sim = FuncAnimation(fig, run, real_time_sim, blit=False, interval=10,
+                            repeat=False, init_func=init_plot)
+        fig.show()
     def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
