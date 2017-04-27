@@ -3,6 +3,7 @@ sys.path.append("../")
 import numpy as np
 import droplet as drp
 from droplet.plotting import plot_2d_aggregate
+from droplet.realtime import RealTimeAggregate2D
 import matplotlib.pyplot as plt
 
 def simple_test(nparticles):
@@ -12,7 +13,8 @@ def simple_test(nparticles):
 
 def real_time_test(nparticles):
     dla2d = drp.DiffusionLimitedAggregate2D()
-    dla2d.generate_real_time(nparticles)
+    sim = RealTimeAggregate2D(dla2d, nparticles, True)
+    sim.display()
 
 #simple_test(500)
-real_time_test(500)
+real_time_test(750)

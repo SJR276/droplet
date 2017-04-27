@@ -1,8 +1,6 @@
 from enum import Enum
 import numpy as np
 from numpy.random import rand
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import droplet.colorprofiles as clrpr
 import droplet.external.progressbar as pb
 
@@ -233,66 +231,34 @@ class DiffusionLimitedAggregate2D(object):
                     self.__aggregate[idx2][1] == crr_pos[1]):
                 self.__push_to_aggregate(prv_pos, count)
                 return True
-    def generate_real_time(self, nparticles, display_progress=True):
-        """Generates an aggregate consisting of `nparticles` in a real-time plot
-        using `matplotlib.animation`.
+    def generate_stream(self, nparticles):
+        """Generator function for streaming aggregate data to a real-time plot.
 
         Parameters:
         -----------
-        - nparticles -- Number of particles to generate in the aggregate.
-        - display_progress -- Determines whether to print a progress bar to stdout
-        showing progress to completion.
-
-        Returns:
-        --------
-        A tuple of the figure and axes handles for the generated plot.
+        nparticles -- Number of particles in the aggregate.
         """
-        def real_time_sim(self):
-            attrange = self.__initialise_attractor()
-            self.__aggregate = np.zeros((nparticles, 2), dtype=int)
-            aggrange = np.arange(nparticles)
-            current = np.zeros(2, dtype=int)
-            previous = np.zeros(2, dtype=int)
-            count = 0
-            has_next_spawned = False
-            while count < nparticles:
-                if not has_next_spawned:
-                    self.__spawn_brownian_particle(current)
-                    has_next_spawned = True
-                previous = current[:]
-                self.__update_brownian_particle(current)
-                self.__lattice_boundary_collision(current, previous)
-                if self.__aggregate_collision(current, previous, count, aggrange, attrange):
-                    count += 1
-                    has_next_spawned = False
-                    yield previous[0], previous[1]
-        fig, axes = plt.subplots()
-        line = axes.scatter([], [])
-        xdata = []
-        ydata = []
-        def init_plot():
-            axes.set_xlim(-10, 10)
-            axes.set_ylim(-10, 10)
-            del xdata[:]
-            del ydata[:]
-            line.set_data(xdata, ydata)
-            return line
-        def run(data):
-            aggx, aggy = data
-            xdata.append(aggx, aggy)
-            xmin, xmax = axes.get_xlim()
-            ymin, ymax = axes.get_ylim()
-            if aggx >= xmax:
-                axes.set_xlim(xmin, 2*xmax)
-                axes.figure.canvas.draw()
-            if aggy >= ymax:
-                axes.set_ylim(ymin, 2*ymax)
-                axes.figure.canvas.draw()
-            line.set_data(xdata, ydata)
-            return line
-        sim = FuncAnimation(fig, run, real_time_sim, blit=False, interval=10,
-                            repeat=False, init_func=init_plot)
-        fig.show()
+        attrange = self.__initialise_attractor()
+        self.__aggregate = np.zeros((nparticles, 2), dtype=int)
+        # initialise colors for each particle in aggregate
+        self.__colors = np.zeros(nparticles, dtype=(float, 3))
+        clrpr.blue_through_red(self.__colors)
+        aggrange = np.arange(nparticles)
+        current = np.zeros(2, dtype=int)
+        previous = np.zeros(2, dtype=int)
+        has_next_spawned = False
+        count = 0
+        while count < nparticles:
+            if not has_next_spawned:
+                self.__spawn_brownian_particle(current)
+                has_next_spawned = True
+            previous[:] = current
+            self.__update_brownian_particle(current)
+            self.__lattice_boundary_collision(current, previous)
+            if self.__aggregate_collision(current, previous, count, aggrange, attrange):
+                count += 1
+                has_next_spawned = False
+                yield self.__aggregate, self.__colors, count
     def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
