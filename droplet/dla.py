@@ -116,7 +116,7 @@ class DiffusionLimitedAggregate2D(object):
         --------
         The x co-ordinates of the aggregate particles.
         """
-        return (self.__aggregate[:,0])[:]
+        return (self.__aggregate[:, 0])[:]
     @property
     def y_coords(self):
         """Returns the y co-ordinates of all particles in the aggregate. This
@@ -126,7 +126,7 @@ class DiffusionLimitedAggregate2D(object):
         --------
         The y co-ordinates of the aggregate particles.
         """
-        return (self.__aggregate[:,1])[:]
+        return (self.__aggregate[:, 1])[:]
     @property
     def colors(self):
         """Returns the color array of all particles (un order) in the aggregate.
@@ -139,8 +139,8 @@ class DiffusionLimitedAggregate2D(object):
             return np.arange(1)
         elif self.__attractor_type == AttractorType.LINE:
             self.__attractor = np.zeros((self.attractor_size, 2), dtype=int)
-            self.__attractor[:,0] = (np.arange(self.attractor_size)
-                                     - (int)(0.5*self.attractor_size))
+            self.__attractor[:, 0] = (np.arange(self.attractor_size)
+                                      - (int)(0.5*self.attractor_size))
             return np.arange(self.attractor_size)
     def __spawn_brownian_particle(self, crr_pos):
         ppr = rand()
