@@ -13,8 +13,8 @@ def simple_test(nparticles):
 
 def real_time_test(nparticles):
     dla2d = drp.DiffusionLimitedAggregate2D()
-    sim = RealTimeAggregate2D(dla2d, nparticles, True)
-    sim.display()
+    sim = RealTimeAggregate2D(dla2d, nparticles, save=True, blitting=True,
+                              filename="../example_images/agg2dtest.gif")
 
 #simple_test(500)
-real_time_test(750)
+real_time_test(100)

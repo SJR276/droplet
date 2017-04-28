@@ -31,4 +31,20 @@ Then you can execute a simple real-time droplet simulation, such as
 
     import droplet as drp
     dla2d = drp.DiffusionLimitedAggregate2D()
-    dla2d.generate_real_time(nparticles=1000)
+    sim = drp.RealTimeAggregate2D(dla2d, nparticles=1000)
+
+Examples
+--------
+
+The following simple case simulates a 2D DLA of 100 particles on a square-lattice in real-time, saving the animated plot to an output file:
+
+.. code:: python
+
+    import droplet as drp
+    dla2d = drp.DiffusionLimitedAggregate2D()
+    sim = drp.RealTimeAggregate2D(dla2d, nparticles=100, save=True,
+                                  filename="../example_images/agg2dtest.gif")
+
+Producing the animated scatter-chart shown below:
+
+.. image:: example_images/agg2dtest.gif 

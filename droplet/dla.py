@@ -241,7 +241,7 @@ class DiffusionLimitedAggregate2D(object):
         attrange = self.__initialise_attractor()
         self.__aggregate = np.zeros((nparticles, 2), dtype=int)
         # initialise colors for each particle in aggregate
-        self.__colors = np.zeros(nparticles, dtype=(float, 3))
+        self.__colors = np.zeros(2*nparticles, dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
