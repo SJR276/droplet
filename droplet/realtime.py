@@ -40,18 +40,15 @@ class RealTimeAggregate2D(object):
             if axlims < 30:
                 axlims = 30
             self.ax.axis([-axlims, axlims, -axlims, axlims])
-            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=5)
+            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=100,
+                                               blit=False, frames=nparticles)
             self.sim.save(filename, writer)
         else:
             self.scat = None
-            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=5,
+            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=10,
                                                init_func=self.initialise_plot,
-                                               blit=blitting if not save else False)
+                                               blit=blitting)
             plt.show()
-        #if save:
-        #    self.sim.save(filename, writer)
-        #else:
-        #    plt.show()
     def initialise_plot(self):
         """Initialises the scatter plot using pre-specified chart properties.
         This function is used for the `init_func` argument of `FuncAnimation`.

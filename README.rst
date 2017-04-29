@@ -36,7 +36,7 @@ Then you can execute a simple real-time droplet simulation, such as
 Examples
 --------
 
-The following simple case simulates a 2D DLA of 100 particles on a square-lattice in real-time, saving the animated plot to an output file:
+The following simple case simulates a 2D DLA of 500 particles on a square-lattice in real-time, saving the animated plot to an output file:
 
 .. code:: python
 
