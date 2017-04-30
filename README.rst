@@ -42,9 +42,9 @@ The following simple case simulates a 2D DLA of 500 particles on a square-lattic
 
     import droplet as drp
     dla2d = drp.DiffusionLimitedAggregate2D()
-    sim = drp.RealTimeAggregate2D(dla2d, nparticles=100, save=True,
+    sim = drp.RealTimeAggregate2D(dla2d, nparticles=500, save=True,
                                   filename="../example_images/agg2dtest.gif")
 
-Producing the animated scatter-chart shown below:
+This produces the animated scatter-chart shown below, where the colour gradient represents the order at which particles were added to the aggregate.
 
 .. image:: example_images/agg2dtest.gif 

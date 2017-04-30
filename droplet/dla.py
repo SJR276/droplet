@@ -192,8 +192,8 @@ class DiffusionLimitedAggregate2D(object):
                     np.abs(crr_pos[1]) > (int)(self.__spawn_diam*0.5 + epsilon)):
                 crr_pos[:] = prv_pos
     def __push_to_aggregate(self, particle, count):
-        self.__aggregate[count][0] = particle[0]
-        self.__aggregate[count][1] = particle[1]
+        self.__aggregate[count+self.attractor_size][0] = particle[0]
+        self.__aggregate[count+self.attractor_size][1] = particle[1]
         radius_sqd = particle[0]**2 + particle[1]**2
         if radius_sqd > self.__max_radius_sqd:
             self.__max_radius_sqd = radius_sqd
@@ -239,9 +239,12 @@ class DiffusionLimitedAggregate2D(object):
         nparticles -- Number of particles in the aggregate.
         """
         attrange = self.__initialise_attractor()
-        self.__aggregate = np.zeros((nparticles, 2), dtype=int)
+        self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
+        for ii in attrange:
+            self.__aggregate[ii][0] = self.__attractor[ii][0]
+            self.__aggregate[ii][1] = self.__attractor[ii][1]
         # initialise colors for each particle in aggregate
-        self.__colors = np.zeros(2*nparticles, dtype=(float, 3))
+        self.__colors = np.zeros(2*(nparticles+self.attractor_size), dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
@@ -274,9 +277,12 @@ class DiffusionLimitedAggregate2D(object):
         of the colors of each corresponding particle.
         """
         attrange = self.__initialise_attractor()
-        self.__aggregate = np.zeros((nparticles, 2), dtype=int)
+        self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
+        for ii in attrange:
+            self.__aggregate[ii][0] = self.__attractor[ii][0]
+            self.__aggregate[ii][0] = self.__attractor[ii][0]
         # initialise colors for each particle in aggregate
-        self.__colors = np.zeros(nparticles, dtype=(float, 3))
+        self.__colors = np.zeros(nparticles+self.attractor_size, dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
