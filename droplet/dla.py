@@ -51,9 +51,11 @@ class DiffusionLimitedAggregate2D(object):
         self.__aggregate = np.array(0)
         self.__colors = np.array(0)
         self.__attractor = np.array(0)
+        self.__reqd_steps = np.array(0)
+        self.__boundary_colls = np.array(0)
         self.attractor_size = 1
         self.color_profile = color_profile
-        self.__boundary_offset = 4
+        self.__boundary_offset = 6
         self.__spawn_diam = self.__boundary_offset
         self.__max_radius_sqd = 0
     @property
@@ -133,6 +135,27 @@ class DiffusionLimitedAggregate2D(object):
         This ia a readonly property, useful for plotting.
         """
         return self.__colors[:]
+    @property
+    def required_steps(self):
+        """Returns the number of lattice steps required for each particle to stick
+        to the aggregate.
+
+        Returns:
+        --------
+        The number of steps on the lattice each particle was required to complete
+        before sticking to the aggregate.
+        """
+        return self.__reqd_steps[:]
+    @property
+    def boundary_collisions(self):
+        """Returns the number of boundary collisions each random-walking particle
+        experienced before sticking to the aggregate.
+
+        Returns:
+        --------
+        Number of boundary collisions experienced by each particle.
+        """
+        return self.__boundary_colls[:]
     def __initialise_attractor(self):
         if self.__attractor_type == AttractorType.POINT:
             self.__attractor = np.zeros((1, 2))
@@ -142,6 +165,10 @@ class DiffusionLimitedAggregate2D(object):
             self.__attractor[:, 0] = (np.arange(self.attractor_size)
                                       - (int)(0.5*self.attractor_size))
             return np.arange(self.attractor_size)
+    def __push_attractor_to_aggregate(self, attrange):
+        for idx in attrange:
+            self.__aggregate[idx][0] = self.__attractor[idx][0]
+            self.__aggregate[idx][1] = self.__attractor[idx][1]
     def __spawn_brownian_particle(self, crr_pos):
         ppr = rand()
         if self.__attractor_type == AttractorType.POINT:
@@ -186,19 +213,22 @@ class DiffusionLimitedAggregate2D(object):
                 crr_pos[0] -= 1
                 crr_pos[1] += 1
     def __lattice_boundary_collision(self, crr_pos, prv_pos):
-        epsilon = 4 # small correction for slightly elastic boundaries
+        epsilon = 2 # small correction for slightly elastic boundaries
+        boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)
         if self.__attractor_type == AttractorType.POINT:
-            if (np.abs(crr_pos[0]) > (int)(self.__spawn_diam*0.5 + epsilon) or
-                    np.abs(crr_pos[1]) > (int)(self.__spawn_diam*0.5 + epsilon)):
+            if (np.abs(crr_pos[0]) > boundary_absmax or
+                    np.abs(crr_pos[1]) > boundary_absmax):
                 crr_pos[:] = prv_pos
+                return True
+        return False
     def __push_to_aggregate(self, particle, count):
         self.__aggregate[count+self.attractor_size][0] = particle[0]
         self.__aggregate[count+self.attractor_size][1] = particle[1]
-        radius_sqd = particle[0]**2 + particle[1]**2
+        radius_sqd = particle[0]*particle[0] + particle[1]*particle[1]
         if radius_sqd > self.__max_radius_sqd:
             self.__max_radius_sqd = radius_sqd
             self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
-    def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range, att_range):
+    def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range):
         """Checks for collision of a particle undergoing Brownian motion with
         the aggregate or attractor structure, and adds the particle to the
         aggregate if a collision does occur.
@@ -210,8 +240,6 @@ class DiffusionLimitedAggregate2D(object):
         count -- Number of particles stuck to the aggregate.
         agg_range -- A `np.arange` array with a size corresponding to number of
         particles to generate.
-        att_range -- A `np.arange` array with a size corresponding to the size of
-        the attractor structure.
 
         Returns:
         --------
@@ -219,16 +247,10 @@ class DiffusionLimitedAggregate2D(object):
         """
         if rand() > self.__stickiness:
             return False
-        # check for collision with attractor seed
-        for idx1 in att_range:
-            if (self.__attractor[idx1][0] == crr_pos[0] and
-                    self.__attractor[idx1][0] == crr_pos[1]):
-                self.__push_to_aggregate(prv_pos, count)
-                return True
         # check for collision with aggregate structure
-        for idx2 in agg_range:
-            if (self.__aggregate[idx2][0] == crr_pos[0] and
-                    self.__aggregate[idx2][1] == crr_pos[1]):
+        for idx in agg_range:
+            if (self.__aggregate[idx][0] == crr_pos[0] and
+                    self.__aggregate[idx][1] == crr_pos[1]):
                 self.__push_to_aggregate(prv_pos, count)
                 return True
     def generate_stream(self, nparticles):
@@ -240,9 +262,9 @@ class DiffusionLimitedAggregate2D(object):
         """
         attrange = self.__initialise_attractor()
         self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
-        for ii in attrange:
-            self.__aggregate[ii][0] = self.__attractor[ii][0]
-            self.__aggregate[ii][1] = self.__attractor[ii][1]
+        self.__push_attractor_to_aggregate(attrange)
+        self.__reqd_steps = np.zeros(nparticles, dtype=int)
+        self.__boundary_colls = np.zeros(nparticles, dtype=int)
         # initialise colors for each particle in aggregate
         self.__colors = np.zeros(2*(nparticles+self.attractor_size), dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
@@ -251,14 +273,22 @@ class DiffusionLimitedAggregate2D(object):
         previous = np.zeros(2, dtype=int)
         has_next_spawned = False
         count = 0
+        steps_to_stick = 0
+        bcolls = 0
         while count < nparticles:
             if not has_next_spawned:
                 self.__spawn_brownian_particle(current)
                 has_next_spawned = True
             previous[:] = current
             self.__update_brownian_particle(current)
-            self.__lattice_boundary_collision(current, previous)
-            if self.__aggregate_collision(current, previous, count, aggrange, attrange):
+            if self.__lattice_boundary_collision(current, previous):
+                bcolls += 1
+            steps_to_stick += 1
+            if self.__aggregate_collision(current, previous, count, aggrange):
+                self.__reqd_steps[count] = steps_to_stick
+                self.__boundary_colls[count] = bcolls
+                steps_to_stick = 0
+                bcolls = 0
                 count += 1
                 has_next_spawned = False
                 yield self.__aggregate, self.__colors, count
@@ -278,9 +308,9 @@ class DiffusionLimitedAggregate2D(object):
         """
         attrange = self.__initialise_attractor()
         self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
-        for ii in attrange:
-            self.__aggregate[ii][0] = self.__attractor[ii][0]
-            self.__aggregate[ii][0] = self.__attractor[ii][0]
+        self.__push_attractor_to_aggregate(attrange)
+        self.__reqd_steps = np.zeros(nparticles, dtype=int)
+        self.__boundary_colls = np.zeros(nparticles, dtype=int)
         # initialise colors for each particle in aggregate
         self.__colors = np.zeros(nparticles+self.attractor_size, dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
@@ -289,6 +319,8 @@ class DiffusionLimitedAggregate2D(object):
         previous = np.zeros(2, dtype=int)
         has_next_spawned = False
         count = 0
+        steps_to_stick = 0
+        bcolls = 0
         if display_progress:
             pbar = pb.ProgressBar(maxval=nparticles).start()
         while count < nparticles:
@@ -297,8 +329,14 @@ class DiffusionLimitedAggregate2D(object):
                 has_next_spawned = True
             previous[:] = current
             self.__update_brownian_particle(current)
-            self.__lattice_boundary_collision(current, previous)
-            if self.__aggregate_collision(current, previous, count, aggrange, attrange):
+            if self.__lattice_boundary_collision(current, previous):
+                bcolls += 1
+            steps_to_stick += 1
+            if self.__aggregate_collision(current, previous, count, aggrange):
+                self.__reqd_steps[count] = steps_to_stick
+                self.__boundary_colls[count] = bcolls
+                steps_to_stick = 0
+                bcolls = 0
                 count += 1
                 has_next_spawned = False
                 if display_progress:
