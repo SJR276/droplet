@@ -1,7 +1,10 @@
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import juggle_axes
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from droplet.dla import DiffusionLimitedAggregate2D
+from droplet.dla import DiffusionLimitedAggregate3D
 
 class RealTimeAggregate2D(object):
     """A real-time scatter plot of a two-dimensional Diffusion Limited
@@ -82,6 +85,63 @@ class RealTimeAggregate2D(object):
             agg, col, count = next(self.stream)
             data = np.hstack((agg[:count, np.newaxis], agg[:count, np.newaxis]))
             self.scat.set_offsets(data)
+        except StopIteration:
+            pass
+        finally:
+            return self.scat,
+
+class RealTimeAggregate3D(object):
+    def __init__(self, aggregate, nparticles, blitting=True, save=False,
+                 filename=None, writer='imagemagick', prad=2):
+        assert isinstance(aggregate, DiffusionLimitedAggregate3D)
+        self.numparticles = nparticles
+        self.prad = prad
+        self.stream = aggregate.generate_stream(nparticles)
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111, projection='3d')
+        if save:
+            agg, col, count = next(self.stream)
+            area = np.pi*(self.prad*self.prad)
+            self.scat = self.ax.scatter(agg[:count, 0], agg[:count, 1], agg[:count, 2],
+                                        c=col, s=area, animated=True)
+            axlims = self.numparticles/25
+            if axlims < 10:
+                axlims = 10
+            self.ax.set_xlim(-axlims, axlims)
+            self.ax.set_ylim(-axlims, axlims)
+            self.ax.set_zlim(-axlims, axlims)
+            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=100,
+                                               blit=False, frames=nparticles)
+        else:
+            self.scat = None
+            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=10,
+                                               init_func=self.initialise_plot, blit=blitting)
+            plt.show()
+    def initialise_plot(self):
+        try:
+            agg, col, count = next(self.stream)
+            area = np.pi*(self.prad*self.prad)
+            self.scat = self.ax.scatter(agg[:count, 0], agg[:count, 1], agg[:count, 2],
+                                        c=col, s=area, animated=True)
+            axlims = self.numparticles/25
+            if axlims < 10:
+                axlims = 10
+            self.ax.set_xlim(-axlims, axlims)
+            self.ax.set_ylim(-axlims, axlims)
+            self.ax.set_zlim(-axlims, axlims)
+        except StopIteration:
+            pass
+        finally:
+            return self.scat,
+    def update_plot(self, _):
+        try:
+            agg, col, count = next(self.stream)
+            #data = np.hstack((agg[:count, np.newaxis], agg[:count, np.newaxis],
+            #                  agg[:count, np.newaxis]))
+            self.scat._offsets3d = juggle_axes(agg[:count, 0],
+                                               agg[:count, 1],
+                                               agg[:count, 2], 'z')
+            #self.scat.set_offsets(data)
         except StopIteration:
             pass
         finally:

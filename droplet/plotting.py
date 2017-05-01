@@ -22,7 +22,7 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0):
     agg_x = aggregate.x_coords
     agg_y = aggregate.y_coords
     color = aggregate.colors
-    parea = np.pi*(prad)**2
+    parea = np.pi*prad*prad
     aggsz = len(agg_x)
     fig, axes = plt.subplots()
     axes.set_xlim(-aggsz/10, aggsz/10)
@@ -42,10 +42,18 @@ def plot_aggregate3d(aggregate, prad=2, edgecolors='none', alpha=0.7):
     aggsz = len(agg_x)
     fig = plt.figure()
     axes = fig.add_subplot(111, projection='3d')
-    axes.set_xlim(-aggsz/10, aggsz/10)
-    axes.set_ylim(-aggsz/10, aggsz/10)
-    axes.set_zlim(-aggsz/10, aggsz/10)
+    axes.set_xlim(-aggsz/20, aggsz/20)
+    axes.set_ylim(-aggsz/20, aggsz/20)
+    axes.set_zlim(-aggsz/20, aggsz/20)
     axes.scatter(agg_x, agg_y, agg_z, c=color, s=parea, edgecolors=edgecolors,
                  alpha=alpha)
     fig.show()
     return fig, axes
+
+def plot_aggregate(aggregate, prad=2, edgecolors='none', alpha=1.0):
+    if isinstance(aggregate, drp.DiffusionLimitedAggregate2D):
+        return plot_aggregate2d(aggregate, prad=prad,
+                                edgecolors=edgecolors, alpha=alpha)
+    elif isinstance(aggregate, drp.DiffusionLimitedAggregate3D):
+        return plot_aggregate3d(aggregate, prad=prad,
+                                edgecolors=edgecolors, alpha=alpha)
