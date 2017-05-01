@@ -253,7 +253,7 @@ class DiffusionLimitedAggregate2D(object):
                     self.__aggregate[idx][1] == crr_pos[1]):
                 self.__push_to_aggregate(prv_pos, count)
                 return True
-    def generate_stream(self, nparticles):
+    def generate_stream(self, nparticles, display_progress=True):
         """Generator function for streaming aggregate data to a real-time plot.
 
         Parameters:
@@ -275,6 +275,8 @@ class DiffusionLimitedAggregate2D(object):
         count = 0
         steps_to_stick = 0
         bcolls = 0
+        if display_progress:
+            pbar = pb.ProgressBar(maxval=nparticles).start()
         while count < nparticles:
             if not has_next_spawned:
                 self.__spawn_brownian_particle(current)
@@ -291,7 +293,11 @@ class DiffusionLimitedAggregate2D(object):
                 bcolls = 0
                 count += 1
                 has_next_spawned = False
+                if display_progress:
+                    pbar.update(count)
                 yield self.__aggregate, self.__colors, count
+        if display_progress:
+            pbar.finish()
     def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
@@ -317,6 +323,291 @@ class DiffusionLimitedAggregate2D(object):
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
         previous = np.zeros(2, dtype=int)
+        has_next_spawned = False
+        count = 0
+        steps_to_stick = 0
+        bcolls = 0
+        if display_progress:
+            pbar = pb.ProgressBar(maxval=nparticles).start()
+        while count < nparticles:
+            if not has_next_spawned:
+                self.__spawn_brownian_particle(current)
+                has_next_spawned = True
+            previous[:] = current
+            self.__update_brownian_particle(current)
+            if self.__lattice_boundary_collision(current, previous):
+                bcolls += 1
+            steps_to_stick += 1
+            if self.__aggregate_collision(current, previous, count, aggrange):
+                self.__reqd_steps[count] = steps_to_stick
+                self.__boundary_colls[count] = bcolls
+                steps_to_stick = 0
+                bcolls = 0
+                count += 1
+                has_next_spawned = False
+                if display_progress:
+                    pbar.update(count)
+        if display_progress:
+            pbar.finish()
+        return self.__aggregate[:], self.__colors[:]
+
+class DiffusionLimitedAggregate3D(object):
+    """A three-dimensional Diffusion Limited Aggregate (DLA) structure
+    with associated properties such as the aggregate stickiness, the
+    type of lattice and the type of attractor used.
+    """
+    def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
+                 attractor_type=AttractorType.POINT,
+                 color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
+        if stickiness < 0.0 or stickiness > 1.0:
+            raise ValueError("Stickiness of aggregate must be in [0, 1].")
+        self.__stickiness = stickiness
+        self.lattice_type = lattice_type
+        self.attractor_type = attractor_type
+        self.__aggregate = np.array(0)
+        self.__colors = np.array(0)
+        self.__attractor = np.array(0)
+        self.__reqd_steps = np.array(0)
+        self.__boundary_colls = np.array(0)
+        self.attractor_size = 1
+        self.color_profile = color_profile
+        self.__boundary_offset = 6
+        self.__spawn_diam = self.__boundary_offset
+        self.__max_radius_sqd = 0
+    @property
+    def stickiness(self):
+        """Returns the stickiness property of the aggregate. This describes
+        the probability of a particle sticking to the aggregate upon collision.
+
+        Returns:
+        --------
+        The aggregate stickiness parameter.
+        """
+        return self.__stickiness
+    @stickiness.setter
+    def stickiness(self, value):
+        """Sets the value of the stickiness of the aggregate. This parameter determines
+        the probability of a particle sticking to the aggregate upon collision.
+
+        Parameters:
+        -----------
+        value -- Value of the stickiness to set.
+
+        Exceptions:
+        -----------
+        Raises `ValueError` if `value` not in [0, 1].
+        """
+        if value < 0.0 or value > 1.0:
+            raise ValueError("Stickiness of aggregate must be in [0, 1].")
+        self.__stickiness = value
+    @property
+    def x_coords(self):
+        """Returns the x co-ordinates of all particles in the aggregate. This
+        is a readonly property, useful for plotting.
+
+        Returns:
+        --------
+        The x co-ordinates of the aggregate particles.
+        """
+        return (self.__aggregate[:, 0])[:]
+    @property
+    def y_coords(self):
+        """Returns the y co-ordinates of all particles in the aggregate. This
+        is a readonly property useful for plotting.
+
+        Returns:
+        --------
+        The y co-ordinates of the aggregate particles.
+        """
+        return (self.__aggregate[:, 1])[:]
+    @property
+    def z_coords(self):
+        """Returns the z co-ordinates of all particles in the aggregate. This
+        is a readonly property useful for plotting.
+
+        Returns:
+        --------
+        The z co-ordinates of the aggregate particles.
+        """
+        return (self.__aggregate[:, 2])[:]
+    @property
+    def colors(self):
+        """Returns the color array of all particles in the aggregate. This is
+        a readonly property, useful for plotting.
+        """
+        return self.__colors[:]
+    @property
+    def required_steps(self):
+        """Returns the number of lattice steps required for each particle to stick
+        to the aggregate.
+
+        Returns:
+        --------
+        The number of steps on the lattice each particle was required to complete
+        before sticking to the aggregate.
+        """
+        return self.__reqd_steps[:]
+    @property
+    def boundary_collisions(self):
+        """Returns the number of boundary collisions each random-walking particle
+        experienced before sticking to the aggregate.
+
+        Returns:
+        --------
+        Number of boundary collisions experienced by each particle.
+        """
+        return self.__boundary_colls[:]
+    def __initialise_attractor(self):
+        if self.attractor_type == AttractorType.POINT:
+            self.__attractor = np.zeros((1, 3))
+            return np.arange(1)
+        elif self.attractor_type == AttractorType.LINE:
+            self.__attractor = np.zeros((self.attractor_size, 3), dtype=int)
+            self.__attractor[:, 0] = (np.arange(self.attractor_size)
+                                      - (int)(0.5*self.attractor_size))
+            return np.arange(self.attractor_size)
+    def __push_attractor_to_aggregate(self, attrange):
+        for idx in attrange:
+            self.__aggregate[idx][0] = self.__attractor[idx][0]
+            self.__aggregate[idx][1] = self.__attractor[idx][1]
+            self.__aggregate[idx][2] = self.__attractor[idx][2]
+    def __spawn_brownian_particle(self, crr_pos):
+        ppr = rand()
+        if self.attractor_type == AttractorType.POINT:
+            if ppr < 1.0/3.0:
+                crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
+                crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
+                if ppr < 1.0/6.0:
+                    crr_pos[2] = 0.5*self.__spawn_diam
+                else:
+                    crr_pos[2] = -0.5*self.__spawn_diam
+            elif ppr >= 1.0/3.0 and ppr < 2.0/3.0:
+                if ppr < 0.5:
+                    crr_pos[0] = 0.5*self.__spawn_diam
+                else:
+                    crr_pos[0] = -0.5*self.__spawn_diam
+                crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
+                crr_pos[2] = self.__spawn_diam*(rand() - 0.5)
+            else:
+                crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
+                if ppr < 5.0/6.0:
+                    crr_pos[1] = 0.5*self.__spawn_diam
+                else:
+                    crr_pos[1] = -0.5*self.__spawn_diam
+                crr_pos[2] = self.__spawn_diam*(rand() - 0.5)
+    def __update_brownian_particle(self, crr_pos):
+        mov_dir = rand()
+        if self.lattice_type == LatticeType.SQUARE:
+            if mov_dir < 1.0/6.0:
+                crr_pos[0] += 1
+            elif mov_dir >= 1.0/6.0 and mov_dir < 2.0/6.0:
+                crr_pos[0] -= 1
+            elif mov_dir >= 2.0/6.0 and mov_dir < 0.5:
+                crr_pos[1] += 1
+            elif mov_dir >= 0.5 and mov_dir < 4.0/6.0:
+                crr_pos[1] -= 1
+            elif mov_dir >= 4.0/6.0 and mov_dir < 5.0/6.0:
+                crr_pos[2] += 1
+            else:
+                crr_pos[2] -= 1
+    def __lattice_boundary_collision(self, crr_pos, prv_pos):
+        epsilon = 2
+        boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)
+        if self.attractor_type == AttractorType.POINT:
+            if (np.abs(crr_pos[0]) > boundary_absmax or
+                    np.abs(crr_pos[1]) > boundary_absmax or
+                    np.abs(crr_pos[2]) > boundary_absmax):
+                crr_pos[:] = prv_pos
+                return True
+        return False
+    def __push_to_aggregate(self, particle, count):
+        self.__aggregate[count + self.attractor_size][0] = particle[0]
+        self.__aggregate[count + self.attractor_size][1] = particle[1]
+        self.__aggregate[count + self.attractor_size][2] = particle[2]
+        radius_sqd = (particle[0]*particle[0] + particle[1]*particle[1]
+                      + particle[2]*particle[2])
+        if radius_sqd > self.__max_radius_sqd:
+            self.__max_radius_sqd = radius_sqd
+            self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
+    def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range):
+        if rand() > self.__stickiness:
+            return False
+        for idx in agg_range:
+            if (self.__aggregate[idx][0] == crr_pos[0] and
+                    self.__aggregate[idx][1] == crr_pos[1] and
+                    self.__aggregate[idx][2] == crr_pos[2]):
+                self.__push_to_aggregate(prv_pos, count)
+                return True
+    def generate_stream(self, nparticles, display_progress=True):
+        """Generator function for streaming aggregate data to a real-time plot.
+
+        Parameters:
+        -----------
+        nparticles -- Number of particles in the aggregate.
+        display_progress -- Determines whether to print a progress bar to stdout
+        showing progress to completion.
+        """
+        attrange = self.__initialise_attractor()
+        self.__aggregate = np.zeros((nparticles + self.attractor_size, 3), dtype=int)
+        self.__push_attractor_to_aggregate(attrange)
+        self.__reqd_steps = np.zeros(nparticles, dtype=int)
+        self.__boundary_colls = np.zeros(nparticles, dtype=int)
+        self.__colors = np.zeros(2*(nparticles+self.attractor_size), dtype=(float, 3))
+        clrpr.blue_through_red(self.__colors)
+        aggrange = np.arange(nparticles)
+        current = np.zeros(3, dtype=int)
+        previous = np.zeros(3, dtype=int)
+        has_next_spawned = False
+        count = 0
+        steps_to_stick = 0
+        bcolls = 0
+        if display_progress:
+            pbar = pb.ProgressBar(maxval=nparticles).start()
+        while count < nparticles:
+            if not has_next_spawned:
+                self.__spawn_brownian_particle(current)
+                has_next_spawned = True
+            previous[:] = current
+            self.__update_brownian_particle(current)
+            if self.__lattice_boundary_collision(current, previous):
+                bcolls += 1
+            steps_to_stick += 1
+            if self.__aggregate_collision(current, previous, count, aggrange):
+                self.__reqd_steps[count] = steps_to_stick
+                self.__boundary_colls[count] = bcolls
+                steps_to_stick = 0
+                bcolls = 0
+                count += 1
+                has_next_spawned = False
+                if display_progress:
+                    pbar.update(count)
+                yield self.__aggregate, self.__colors, count
+        if display_progress:
+            pbar.finish()
+    def generate(self, nparticles, display_progress=True):
+        """Generates an aggregate consisting of `nparticles`.
+
+        Parameters:
+        -----------
+        nparticles -- Number of particles in the aggregate.
+        display_progress -- Determines whether to print a progress bar to stdout
+        showing progress to completion.
+
+        Returns:
+        --------
+        A tuple consisting of a copy of the aggregate particle co-ordinates and a copy
+        of the colors of each corresponding particle.
+        """
+        attrange = self.__initialise_attractor()
+        self.__aggregate = np.zeros((nparticles + self.attractor_size, 3), dtype=int)
+        self.__push_attractor_to_aggregate(attrange)
+        self.__reqd_steps = np.zeros(nparticles, dtype=int)
+        self.__boundary_colls = np.zeros(nparticles, dtype=int)
+        self.__colors = np.zeros(nparticles+self.attractor_size, dtype=(float, 3))
+        clrpr.blue_through_red(self.__colors)
+        aggrange = np.arange(nparticles)
+        current = np.zeros(3, dtype=int)
+        previous = np.zeros(3, dtype=int)
         has_next_spawned = False
         count = 0
         steps_to_stick = 0
