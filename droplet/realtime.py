@@ -43,7 +43,7 @@ class RealTimeAggregate2D(object):
             if axlims < 30:
                 axlims = 30
             self.ax.axis([-axlims, axlims, -axlims, axlims])
-            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=100,
+            self.sim = animation.FuncAnimation(self.fig, self.update_plot, interval=50,
                                                blit=False, frames=nparticles)
             self.sim.save(filename, writer)
         else:
