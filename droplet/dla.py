@@ -510,6 +510,27 @@ class DiffusionLimitedAggregate3D(object):
                 crr_pos[2] += 1
             else:
                 crr_pos[2] -= 1
+        elif self.lattice_type == LatticeType.TRIANGLE:
+            if mov_dir < 1.0/8.0:
+                crr_pos[0] += 1
+                crr_pos[1] += 1
+            elif mov_dir >= 1.0/8.0 and mov_dir < 0.25:
+                crr_pos[0] += 1
+                crr_pos[1] -= 1
+            elif mov_dir >= 0.25 and mov_dir < 3.0/8.0:
+                crr_pos[0] -= 1
+                crr_pos[1] -= 1
+            elif mov_dir >= 3.0/8.0 and mov_dir < 0.5:
+                crr_pos[0] -= 1
+                crr_pos[1] += 1
+            elif mov_dir >= 0.5 and mov_dir < 5.0/8.0:
+                crr_pos[0] += 1
+            elif mov_dir >= 5.0/8.0 and mov_dir < 0.75:
+                crr_pos[0] -= 1
+            elif mov_dir >= 0.75 and mov_dir < 7.0/8.0:
+                crr_pos[2] += 1
+            else:
+                crr_pos[2] -= 1
     def __lattice_boundary_collision(self, crr_pos, prv_pos):
         epsilon = 2
         boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)

@@ -48,3 +48,15 @@ The following simple case simulates a 2D DLA of 500 particles on a square-lattic
 This produces the animated scatter-chart shown below, where the colour gradient represents the order at which particles were added to the aggregate.
 
 .. image:: example_images/agg2dtest.gif 
+
+Statistics describing the generation of the aggregate can be tracked and plotted, the following example shows the number of lattice steps and boundary collisions experienced by each spawned Browian particle before it stuck to the aggregate.
+
+.. code:: python
+
+    from tests.aggregate_statistic_tests import combined_test
+
+    combined_test(nparticles=500, save=True, filename="../example_images/agg2dstats.png")
+
+From this example, the figure below is produced.
+
+.. image:: example_images/agg2dstats.png
