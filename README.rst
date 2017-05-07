@@ -41,15 +41,28 @@ The following simple case simulates a 2D DLA of 500 particles on a square-lattic
 .. code:: python
 
     import droplet as drp
-    dla2d = drp.DiffusionLimitedAggregate2D()
-    sim = drp.RealTimeAggregate2D(dla2d, nparticles=500, save=True,
+    aggregate = drp.DiffusionLimitedAggregate2D()
+    sim = drp.RealTimeAggregate2D(aggregate, nparticles=500, save=True,
                                   filename="../example_images/agg2dtest.gif")
 
 This produces the animated scatter-chart shown below, where the colour gradient represents the order at which particles were added to the aggregate.
 
 .. image:: example_images/agg2dtest.gif 
 
-Statistics describing the generation of the aggregate can be tracked and plotted, the following example shows the number of lattice steps and boundary collisions experienced by each spawned Browian particle before it stuck to the aggregate.
+Three-dimensional aggregates can also be simulated in real-time using similar syntax. The code shown below produces an aggregate on a cubic lattice with the simulation again saved to an output file:
+
+.. code:: python
+
+    import droplet as drp
+    aggregate = drp.DiffusionLimitedAggregate3D()
+    sim = drp.RealTimeAggregate3D(aggregate, nparticles=200, autorotate=True, save=True,
+                                  filename="../example_images/agg3dtest.gif")
+
+A gif of the resulting animated scatter-chart is shown below.
+
+.. image:: example_images/agg3dtest.gif
+
+Statistics describing the generation of the aggregate can be tracked and plotted, the following example shows the number of lattice steps and boundary collisions experienced by each Browian particle before it stuck to the aggregate for a triangular lattice.
 
 .. code:: python
 
@@ -58,7 +71,7 @@ Statistics describing the generation of the aggregate can be tracked and plotted
     import droplet as drp
 
     nparticles = 500
-    aggregate = drp.DiffusionLimitedAggregate2D()
+    aggregate = drp.DiffusionLimitedAggregate2D(drp.LatticeType.TRIANGLE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
     fig = plt.figure()

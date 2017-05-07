@@ -25,14 +25,14 @@ def boundary_collisions_test(nparticles):
     fig.show()
 
 def combined_test(nparticles, save=False, filename=None):
-    aggregate = drp.DiffusionLimitedAggregate2D()
+    aggregate = drp.DiffusionLimitedAggregate2D(lattice_type=drp.LatticeType.TRIANGLE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
-    fig = plt.figure(figsize=(14,7))
-    figdims = [(2,2,1), (2,2,3), (2,2,(2,4))]
+    fig = plt.figure(figsize=(14, 7))
+    figdims = [(2, 2, 1), (2, 2, 3), (2, 2, (2, 4))]
     count = 0
-    for nrows, ncols, pn in figdims:
-        sub = fig.add_subplot(nrows, ncols, pn)
+    for nrows, ncols, plotno in figdims:
+        sub = fig.add_subplot(nrows, ncols, plotno)
         if count == 0:
             sub.plot(prange, aggregate.required_steps)
             sub.set_xlabel('Aggregate Particle Index')
@@ -52,4 +52,4 @@ def combined_test(nparticles, save=False, filename=None):
     fig.show()
     fig.savefig(filename)
 
-combined_test(500, save=True, filename="../example_images/agg2dstats.png")
+combined_test(1000, save=True, filename="../example_images/agg2dstats.png")

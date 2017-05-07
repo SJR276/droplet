@@ -174,9 +174,9 @@ class RealTimeAggregate3D(object):
             agg, col, count = next(self.stream)
             self.scat._offsets3d = (agg[:count, 0], agg[:count, 1], agg[:count, 2])
             if self.autorotate:
-                self.angle = (self.angle + 1)%360
+                self.angle = (self.angle + 2)%360
                 self.ax.view_init(30, self.angle)
-                plt.draw()
+            plt.draw()
         except StopIteration:
             pass
         finally:
