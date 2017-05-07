@@ -95,7 +95,7 @@ class RealTimeAggregate3D(object):
     Aggregate rendered using `matplotlib.animation.FuncAnimation`.
     """
     def __init__(self, aggregate, nparticles, blitting=True, save=False,
-                 filename=None, writer='imagemagick', prad=2):
+                 filename=None, writer='imagemagick', prad=2, autorotate=False):
         """Creates a `RealTimeAggregate3D` instance from an existing
         `DiffusionLimitedAggregate3D` object.
 
@@ -115,6 +115,8 @@ class RealTimeAggregate3D(object):
         assert isinstance(aggregate, DiffusionLimitedAggregate3D)
         self.numparticles = nparticles
         self.prad = prad
+        self.angle = 0
+        self.autorotate = autorotate
         self.stream = aggregate.generate_stream(nparticles)
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection='3d')
@@ -170,9 +172,11 @@ class RealTimeAggregate3D(object):
         """
         try:
             agg, col, count = next(self.stream)
-            self.scat._offsets3d = juggle_axes(agg[:count, 0],
-                                               agg[:count, 1],
-                                               agg[:count, 2], 'z')
+            self.scat._offsets3d = (agg[:count, 0], agg[:count, 1], agg[:count, 2])
+            if self.autorotate:
+                self.angle = (self.angle + 1)%360
+                self.ax.view_init(30, self.angle)
+                plt.draw()
         except StopIteration:
             pass
         finally:

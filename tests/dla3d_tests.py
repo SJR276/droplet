@@ -10,8 +10,9 @@ def simple_test(nparticles):
     plot_aggregate3d(aggregate)
 
 def real_time_test(nparticles):
-    aggregate = drp.DiffusionLimitedAggregate3D()
-    sim = RealTimeAggregate3D(aggregate, nparticles, blitting=True)
+    aggregate = drp.DiffusionLimitedAggregate3D(lattice_type=drp.LatticeType.TRIANGLE)
+    sim = RealTimeAggregate3D(aggregate, nparticles, blitting=False, save=False,
+                              filename="../example_images/agg3dtest.gif", autorotate=True)
 
-simple_test(500)
-#real_time_test(500)
+#simple_test(500)
+real_time_test(100)

@@ -53,9 +53,37 @@ Statistics describing the generation of the aggregate can be tracked and plotted
 
 .. code:: python
 
-    from tests.aggregate_statistic_tests import combined_test
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import droplet as drp
 
-    combined_test(nparticles=500, save=True, filename="../example_images/agg2dstats.png")
+    nparticles = 500
+    aggregate = drp.DiffusionLimitedAggregate2D()
+    aggregate.generate(nparticles)
+    prange = np.arange(nparticles)
+    fig = plt.figure()
+    # dimensions of subplots for figure
+    figdims = [(2,2,1), (2,2,3), (2,2,(2,4))]
+    count = 0
+    for nrows, ncols, plotno in figdims:
+        sub = fig.add_subplot(nrows, ncols, plotno)
+        # plot required steps for each particle
+        if count == 0:
+            sub.plot(prange, aggregate.required_steps)
+            sub.set_xlabel('Aggregate Particle Index')
+            sub.set_ylabel('Lattice Steps to Stick')
+        # plot boundary collisions for each particle
+        elif count == 1:
+            sub.plot(prange, aggregate.boundary_collision, 'r')
+            sub.set_xlabel('Aggregate Particle Index')
+            sub.set_ylabel('Boundary Collisions')
+        # plot aggregate itself
+        else:
+            sub.scatter(aggregate.x_coords, aggregate.y_coords, c=aggregate.colors)
+            sub.set_xlabel('x')
+            sub.set_ylabel('y')
+        count += 1
+    fig.savefig("../example_images/agg2dstats.png")
 
 From this example, the figure below is produced.
 
