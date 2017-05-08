@@ -3,7 +3,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import droplet as drp
 
-def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0):
+def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
+                     inv_zoom=1.5):
     """Plots a two-dimensional Diffusion Limited Aggregate on a scatter
     chart with the specified properties.
 
@@ -13,6 +14,7 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0):
     prad -- Radius of particles.
     edgecolors -- Color profile of particle edges.
     alpha -- Alpha value for particle transparency.
+    inv_zoom -- Inverse zoom scaling.
 
     Returns:
     --------
@@ -23,10 +25,11 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0):
     agg_y = aggregate.y_coords
     color = aggregate.colors
     parea = np.pi*prad*prad
-    aggsz = len(agg_x)
     fig, axes = plt.subplots()
-    axes.set_xlim(-aggsz/10, aggsz/10)
-    axes.set_ylim(-aggsz/10, aggsz/10)
+    max_x = np.max(agg_x)
+    max_y = np.max(agg_y)
+    axes.set_xlim(-max_x*inv_zoom, max_x*inv_zoom)
+    axes.set_ylim(-max_y*inv_zoom, max_y*inv_zoom)
     axes.scatter(agg_x, agg_y, c=color, s=parea, edgecolors=edgecolors,
                  alpha=alpha)
     fig.show()

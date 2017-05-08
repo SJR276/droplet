@@ -1,6 +1,5 @@
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import juggle_axes
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from droplet.dla import DiffusionLimitedAggregate2D
@@ -173,9 +172,10 @@ class RealTimeAggregate3D(object):
         try:
             agg, col, count = next(self.stream)
             self.scat._offsets3d = (agg[:count, 0], agg[:count, 1], agg[:count, 2])
+            self.scat.set_facecolor(col)
             if self.autorotate:
                 self.angle = (self.angle + 2)%360
-                self.ax.view_init(30, self.angle)
+                self.ax.view_init(30+self.angle, self.angle)
             plt.draw()
         except StopIteration:
             pass

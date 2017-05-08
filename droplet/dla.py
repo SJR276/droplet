@@ -58,6 +58,8 @@ class DiffusionLimitedAggregate2D(object):
         self.__boundary_offset = 6
         self.__spawn_diam = self.__boundary_offset
         self.__max_radius_sqd = 0
+        self.__max_x = 0
+        self.__max_y = 0
     @property
     def stickiness(self):
         """Returns the stickiness property of the aggregate. This describes
@@ -165,25 +167,45 @@ class DiffusionLimitedAggregate2D(object):
             self.__attractor[:, 0] = (np.arange(self.attractor_size)
                                       - (int)(0.5*self.attractor_size))
             return np.arange(self.attractor_size)
+        elif self.__attractor_type == AttractorType.CIRCLE:
+            self.__attractor = np.zeros((self.attractor_size, 2), dtype=int)
+            angles = np.arange(0.0, 2.0*np.pi, step=np.pi/100)
+            count = 0
+            for theta in angles:
+                self.__attractor[count][0] = self.attractor_size*np.cos(theta)
+                self.__attractor[count][1] = self.attractor_size*np.sin(theta)
+                count += 1
     def __push_attractor_to_aggregate(self, attrange):
         for idx in attrange:
-            self.__aggregate[idx][0] = self.__attractor[idx][0]
-            self.__aggregate[idx][1] = self.__attractor[idx][1]
+            pos_x = self.__attractor[idx][0]
+            pos_y = self.__attractor[idx][1]
+            self.__aggregate[idx][0] = pos_x
+            self.__aggregate[idx][1] = pos_y
+            if self.__attractor_type == AttractorType.POINT:
+                radius_sqd = pos_x*pos_x + pos_y*pos_y
+                if radius_sqd > self.__max_radius_sqd:
+                    self.__max_radius_sqd = radius_sqd
+                    self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
+            elif self.__attractor_type == AttractorType.LINE:
+                if pos_y > self.__max_y:
+                    self.__max_y = pos_y
+                    self.__spawn_diam = pos_y + self.__boundary_offset
+        if self.__attractor_type == AttractorType.CIRCLE:
+            self.__spawn_diam = self.attractor_size + self.__boundary_offset
     def __spawn_brownian_particle(self, crr_pos):
         ppr = rand()
         if self.__attractor_type == AttractorType.POINT:
             if ppr < 0.5:
                 crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
-                if ppr < 0.25:
-                    crr_pos[1] = self.__spawn_diam*0.5
-                else:
-                    crr_pos[1] = -self.__spawn_diam*0.5
+                crr_pos[1] = (self.__spawn_diam*0.5 if ppr < 0.25 else
+                              -self.__spawn_diam*0.5)
             else:
-                if ppr < 0.75:
-                    crr_pos[0] = self.__spawn_diam*0.5
-                else:
-                    crr_pos[0] = -self.__spawn_diam*0.5
+                crr_pos[0] = (self.__spawn_diam*0.5 if ppr < 0.75 else
+                              -self.__spawn_diam*0.5)
                 crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
+        elif self.__attractor_type == AttractorType.LINE:
+            crr_pos[0] = 2*self.attractor_size*(rand() - 0.5)
+            crr_pos[1] = (self.__spawn_diam if ppr < 0.5 else -self.__spawn_diam)
     def __update_brownian_particle(self, crr_pos):
         mov_dir = rand()
         if self.lattice_type == LatticeType.SQUARE:
@@ -214,20 +236,37 @@ class DiffusionLimitedAggregate2D(object):
                 crr_pos[1] += 1
     def __lattice_boundary_collision(self, crr_pos, prv_pos):
         epsilon = 2 # small correction for slightly elastic boundaries
-        boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)
         if self.__attractor_type == AttractorType.POINT:
+            boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)
             if (np.abs(crr_pos[0]) > boundary_absmax or
                     np.abs(crr_pos[1]) > boundary_absmax):
+                crr_pos[:] = prv_pos
+                return True
+        elif self.__attractor_type == AttractorType.LINE:
+            if (np.abs(crr_pos[0]) > 2*self.attractor_size or
+                    np.abs(crr_pos[1]) > self.__spawn_diam + epsilon):
                 crr_pos[:] = prv_pos
                 return True
         return False
     def __push_to_aggregate(self, particle, count):
         self.__aggregate[count+self.attractor_size][0] = particle[0]
         self.__aggregate[count+self.attractor_size][1] = particle[1]
-        radius_sqd = particle[0]*particle[0] + particle[1]*particle[1]
-        if radius_sqd > self.__max_radius_sqd:
-            self.__max_radius_sqd = radius_sqd
-            self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
+        # check if we need to expand the spawning region
+        if self.__attractor_type == AttractorType.POINT:
+            radius_sqd = particle[0]*particle[0] + particle[1]*particle[1]
+            if radius_sqd > self.__max_radius_sqd:
+                self.__max_radius_sqd = radius_sqd
+                self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
+        elif self.__attractor_type == AttractorType.LINE:
+            if particle[1] > self.__max_y:
+                self.__max_y = particle[1]
+                self.__spawn_diam = particle[1] + self.__boundary_offset
+        elif self.__attractor_type == AttractorType.CIRCLE:
+            radius_sqd = (particle[0]*particle[0] + particle[1]*particle[1] +
+                          self.attractor_size*self.attractor_size)
+            if radius_sqd > self.__max_radius_sqd:
+                self.__max_radius_sqd = radius_sqd
+                self.__spawn_diam = 2*(int)(radius_sqd**0.5) + self.__boundary_offset
     def __aggregate_collision(self, crr_pos, prv_pos, count, agg_range):
         """Checks for collision of a particle undergoing Brownian motion with
         the aggregate or attractor structure, and adds the particle to the
@@ -477,23 +516,17 @@ class DiffusionLimitedAggregate3D(object):
             if ppr < 1.0/3.0:
                 crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
                 crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
-                if ppr < 1.0/6.0:
-                    crr_pos[2] = 0.5*self.__spawn_diam
-                else:
-                    crr_pos[2] = -0.5*self.__spawn_diam
+                crr_pos[2] = (0.5*self.__spawn_diam if ppr < 1.0/6.0 else
+                              -0.5*self.__spawn_diam)
             elif ppr >= 1.0/3.0 and ppr < 2.0/3.0:
-                if ppr < 0.5:
-                    crr_pos[0] = 0.5*self.__spawn_diam
-                else:
-                    crr_pos[0] = -0.5*self.__spawn_diam
+                crr_pos[0] = (0.5*self.__spawn_diam if ppr < 0.5 else
+                              -0.5*self.__spawn_diam)
                 crr_pos[1] = self.__spawn_diam*(rand() - 0.5)
                 crr_pos[2] = self.__spawn_diam*(rand() - 0.5)
             else:
                 crr_pos[0] = self.__spawn_diam*(rand() - 0.5)
-                if ppr < 5.0/6.0:
-                    crr_pos[1] = 0.5*self.__spawn_diam
-                else:
-                    crr_pos[1] = -0.5*self.__spawn_diam
+                crr_pos[1] = (0.5*self.__spawn_diam if ppr < 5.0/6.0 else
+                              -0.5*self.__spawn_diam)
                 crr_pos[2] = self.__spawn_diam*(rand() - 0.5)
     def __update_brownian_particle(self, crr_pos):
         mov_dir = rand()
