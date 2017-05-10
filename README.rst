@@ -30,8 +30,8 @@ Then you can execute a simple real-time droplet simulation, such as
 .. code:: python
 
     import droplet as drp
-    dla2d = drp.DiffusionLimitedAggregate2D()
-    sim = drp.RealTimeAggregate2D(dla2d, nparticles=1000)
+    aggregate = drp.DiffusionLimitedAggregate2D()
+    sim = drp.RealTimeAggregate2D(aggregate, nparticles=1000)
 
 Examples
 --------
@@ -77,17 +77,16 @@ Statistics describing the generation of the aggregate can be tracked and plotted
     fig = plt.figure()
     # dimensions of subplots for figure
     figdims = [(2,2,1), (2,2,3), (2,2,(2,4))]
-    count = 0
-    for nrows, ncols, plotno in figdims:
-        sub = fig.add_subplot(nrows, ncols, plotno)
+    for row, col, plotno in figdims:
+        sub = fig.add_subplot(row, col, plotno)
         # plot required steps for each particle
-        if count == 0:
+        if plotno == 1:
             sub.plot(prange, aggregate.required_steps)
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Lattice Steps to Stick')
         # plot boundary collisions for each particle
-        elif count == 1:
-            sub.plot(prange, aggregate.boundary_collision, 'r')
+        elif plotno == 3:
+            sub.plot(prange, aggregate.boundary_collisions, 'r')
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Boundary Collisions')
         # plot aggregate itself
@@ -96,7 +95,7 @@ Statistics describing the generation of the aggregate can be tracked and plotted
             sub.set_xlabel('x')
             sub.set_ylabel('y')
         count += 1
-    fig.savefig("../example_images/agg2dstats.png")
+    fig.show()
 
 From this example, the figure below is produced.
 

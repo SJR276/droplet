@@ -168,13 +168,15 @@ class DiffusionLimitedAggregate2D(object):
                                       - (int)(0.5*self.attractor_size))
             return np.arange(self.attractor_size)
         elif self.__attractor_type == AttractorType.CIRCLE:
-            self.__attractor = np.zeros((self.attractor_size, 2), dtype=int)
-            angles = np.arange(0.0, 2.0*np.pi, step=np.pi/100)
+            self.__attractor = np.zeros(((int)(2.0*np.pi*self.attractor_size)+1, 2), dtype=int)
+            #angles = np.arange(0.0, 2.0*np.pi, step=np.pi/100)
+            angles = np.arange(0.0, 2.0*np.pi, step=1.0/self.attractor_size)
             count = 0
             for theta in angles:
                 self.__attractor[count][0] = self.attractor_size*np.cos(theta)
                 self.__attractor[count][1] = self.attractor_size*np.sin(theta)
                 count += 1
+            return np.arange(len(angles))
     def __push_attractor_to_aggregate(self, attrange):
         for idx in attrange:
             pos_x = self.__attractor[idx][0]
@@ -236,7 +238,8 @@ class DiffusionLimitedAggregate2D(object):
                 crr_pos[1] += 1
     def __lattice_boundary_collision(self, crr_pos, prv_pos):
         epsilon = 2 # small correction for slightly elastic boundaries
-        if self.__attractor_type == AttractorType.POINT:
+        if (self.__attractor_type == AttractorType.POINT or
+                self.__attractor_type == AttractorType.CIRCLE):
             boundary_absmax = (int)(self.__spawn_diam*0.5 + epsilon)
             if (np.abs(crr_pos[0]) > boundary_absmax or
                     np.abs(crr_pos[1]) > boundary_absmax):
@@ -352,12 +355,12 @@ class DiffusionLimitedAggregate2D(object):
         of the colors of each corresponding particle.
         """
         attrange = self.__initialise_attractor()
-        self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
+        self.__aggregate = np.zeros((nparticles+len(attrange), 2), dtype=int)
         self.__push_attractor_to_aggregate(attrange)
         self.__reqd_steps = np.zeros(nparticles, dtype=int)
         self.__boundary_colls = np.zeros(nparticles, dtype=int)
         # initialise colors for each particle in aggregate
-        self.__colors = np.zeros(nparticles+self.attractor_size, dtype=(float, 3))
+        self.__colors = np.zeros(nparticles+len(attrange), dtype=(float, 3))
         clrpr.blue_through_red(self.__colors)
         aggrange = np.arange(nparticles)
         current = np.zeros(2, dtype=int)
