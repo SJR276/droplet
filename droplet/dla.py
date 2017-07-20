@@ -5,7 +5,7 @@ import droplet.colorprofiles as clrpr
 import droplet.external.progressbar as pb
 
 class LatticeType(Enum):
-    """The geometry of a lattice, determines the motion of particles."""
+    """The geometry of a lattice."""
     SQUARE = 1
     TRIANGLE = 2
 
@@ -34,6 +34,7 @@ class DiffusionLimitedAggregate2D(object):
         of a particle sticking to the aggregate upon collision.
         - lattice_type -- Type of lattice upon which to execute aggregate generation.
         - attractor_type -- Type of initial attractor seed.
+        - color_profile -- Color gradient of aggregate particles.
 
         Exceptions:
         -----------
@@ -300,7 +301,9 @@ class DiffusionLimitedAggregate2D(object):
 
         Parameters:
         -----------
-        nparticles -- Number of particles in the aggregate.
+        - nparticles -- Number of particles, i.e. size of aggregate, to generate.
+        - display_progress -- Determines whether to print a progress bar to `stdout`
+        showing progress to completion.
         """
         attrange = self.__initialise_attractor()
         self.__aggregate = np.zeros((nparticles+self.attractor_size, 2), dtype=int)
@@ -345,8 +348,8 @@ class DiffusionLimitedAggregate2D(object):
 
         Parameters:
         -----------
-        - nparticles -- Number of particles in the aggregate.
-        - display_progress -- Determines whether to print a progress bar to stdout
+        - nparticles -- Number of particles, i.e. size of aggregate, to generate.
+        - display_progress -- Determines whether to print a progress bar to `stdout`
         showing progress to completion.
 
         Returns:
@@ -600,7 +603,7 @@ class DiffusionLimitedAggregate3D(object):
 
         Parameters:
         -----------
-        nparticles -- Number of particles in the aggregate.
+        nparticles -- Number of particles, i.e. size of aggregate, to generate.
         display_progress -- Determines whether to print a progress bar to stdout
         showing progress to completion.
         """
@@ -646,7 +649,7 @@ class DiffusionLimitedAggregate3D(object):
 
         Parameters:
         -----------
-        nparticles -- Number of particles in the aggregate.
+        nparticles -- Number of particles, i.e. size of aggregate, to generate.
         display_progress -- Determines whether to print a progress bar to stdout
         showing progress to completion.
 
