@@ -12,7 +12,7 @@ def simple_moving_average(data, period):
 
     - a sequence of `[period, 2*period, 3*period, ..., ]` if `data` is
     one-dimensional or,
-    - a sequence of `[data[0][period], data[0][2*period], data[0][3*period], ..., ]` if
+    - a sequence of `[data[period][0], data[2*period][0], data[3*period][0], ..., ]` if
     `data` is two-dimensional.
 
     Parameters:
@@ -54,7 +54,7 @@ def simple_moving_average(data, period):
             sma[idx][1] = sma[idx-1][1] + (data[idx*period] - data[(idx-1)*period])*invp
         elif datadims == 2:
             sma[idx][0] = data[(idx+1)*period][0]
-            sma[idx][1] = sma[idx-1][1] + (data[:(idx*period), 1] - data[:((idx-1)*period), 1])*invp
+            sma[idx][1] = sma[idx-1][1] + (data[idx*period][1] - data[(idx-1)*period][1])*invp
     return sma
 
 def steps_to_stick_test(nparticles):
