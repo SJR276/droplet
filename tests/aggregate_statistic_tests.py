@@ -4,16 +4,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 import droplet as drp
 
-def moving_average(data, period):
+def simple_moving_average(data, period):
+    """Computes the simple moving average (SMA) of an `np.array`
+    of data using a specified period. The `data` can be either
+    one or two-dimensional, in both cases a two-dimensional `np.array`
+    is returned where the first dimension contains:
+
+    - a sequence of `[period, 2*period, 3*period, ..., ]` if `data` is
+    one-dimensional or,
+    - a sequence of `[data[0][period], data[0][2*period], data[0][3*period], ..., ]` if
+    `data` is two-dimensional.
+
+    Parameters:
+    -----------
+    data -- An `np.array` of data for which to compute the simple moving average. Must
+    be either 1D or 2D, in the latter case the SMA of the second dimension will be calculated.
+    period -- An integer representing the data indexing period.
+
+    Returns:
+    --------
+    A 2D `np.array` where the second dimension contains SMA values computed for each period
+    indexed in the first dimension.
+    """
     assert isinstance(period, int)
-    size = (int)(len(data)/period)
-    mvavg = np.zeros((size, 2))
-    mvavg[0][0] = 0
-    mvavg[0][1] = np.ma.mean(data[:period])
+    invp = 1/period # for optimisation
+    size = (int)(len(data)*invp)
+    sma = np.zeros((size, 2))
+    datadims = 0
+    try: # determining dimensions of data
+        temp = data.shape[1]
+        if temp == 1:
+            sma[0][0] = period
+            datadims = 1
+        elif temp == 2:
+            sma[0][0] = data[period][0]
+            datadims = 2
+        else: # raise exception when data dimensions > 2
+            raise TypeError("data array must be one or two dimensional.")
+    except IndexError:
+        sma[0][0] = period
+        datadims = 1
+    if datadims == 1:
+        sma[0][1] = np.ma.mean(data[:period])
+    elif datadims == 2:
+        sma[0][1] = np.ma.mean(data[:period, 1])
     for idx in np.arange(1, size):
-        mvavg[idx][0] = idx*period
-        mvavg[idx][1] = mvavg[idx-1][1] + (data[idx*period] - data[(idx-1)*period])/period
-    return mvavg
+        if datadims == 1:
+            sma[idx][0] = (idx+1)*period
+            sma[idx][1] = sma[idx-1][1] + (data[idx*period] - data[(idx-1)*period])*invp
+        elif datadims == 2:
+            sma[idx][0] = data[(idx+1)*period][0]
+            sma[idx][1] = sma[idx-1][1] + (data[:(idx*period), 1] - data[:((idx-1)*period), 1])*invp
+    return sma
 
 def steps_to_stick_test(nparticles):
     aggregate = drp.DiffusionLimitedAggregate2D(lattice_type=drp.LatticeType.SQUARE)
@@ -35,7 +77,8 @@ def boundary_collisions_test(nparticles):
     axes.set_ylabel('Boundary Collsions')
     fig.show()
 
-def combined_test(nparticles, scalefactor=2.0, save=False, filename=None, plot_mas=True):
+def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_sma=True,
+                  sma_period=None):
     aggregate = drp.DiffusionLimitedAggregate2D(lattice_type=drp.LatticeType.SQUARE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
@@ -45,13 +88,16 @@ def combined_test(nparticles, scalefactor=2.0, save=False, filename=None, plot_m
         sub = fig.add_subplot(row, col, plotno)
         if plotno == 1:
             sub.plot(prange, aggregate.required_steps)
-            if plot_mas:
-                rqd_steps_ma = moving_average(aggregate.required_steps, (int)(nparticles/100))
+            if plot_sma:
+                rqd_steps_ma = simple_moving_average(aggregate.required_steps, sma_period)
                 sub.plot(rqd_steps_ma[:, 0], rqd_steps_ma[:, 1], 'g')
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Lattice Steps to Stick')
         elif plotno == 3:
             sub.plot(prange, aggregate.boundary_collisions, 'r')
+            if plot_sma:
+                bcoll_ma = simple_moving_average(aggregate.boundary_collisions, sma_period)
+                sub.plot(bcoll_ma[:, 0], bcoll_ma[:, 1], 'g')
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Boundary Collisions')
         else:
@@ -67,4 +113,4 @@ def combined_test(nparticles, scalefactor=2.0, save=False, filename=None, plot_m
     if save:
         fig.savefig(filename)
 
-combined_test(500, save=False, filename="../example_images/agg2dstats.png")
+combined_test(1000, save=False, filename="../example_images/agg2dstats.png", sma_period=20)
