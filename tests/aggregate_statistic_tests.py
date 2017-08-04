@@ -113,4 +113,4 @@ def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_s
     if save:
         fig.savefig(filename)
 
-combined_test(1000, save=False, filename="../example_images/agg2dstats.png", sma_period=20)
+combined_test(500, save=False, filename="../example_images/agg2dstats.png", sma_period=20)

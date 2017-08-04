@@ -1,8 +1,37 @@
+from ctypes import Structure, POINTER, c_size_t, c_ubyte, c_double, c_int
 from enum import Enum
 import numpy as np
 from numpy.random import rand
 import droplet.colorprofiles as clrpr
 import droplet.external.progressbar as pb
+
+class _VectorWrapper(Structure):
+    _fields_ = [
+        ("data", POINTER(c_ubyte)),
+        ("size", c_size_t),
+        ("elemsize", c_size_t),
+        ("capacity", c_size_t)]
+
+class _AggregateWrapper(Structure):
+    _fields_ = [
+        ("_aggregate", POINTER(_VectorWrapper)),
+        ("_attractor", POINTER(_VectorWrapper)),
+        ("_bcolls", POINTER(_VectorWrapper)),
+        ("_rsteps", POINTER(_VectorWrapper)),
+        ("stickiness", c_double),
+        ("max_x", c_size_t),
+        ("max_y", c_size_t),
+        ("max_r_sqd", c_size_t),
+        ("b_offset", c_size_t),
+        ("spawn_diam", c_size_t),
+        ("att_size", c_size_t),
+        ("lt", c_int),
+        ("at", c_int)]
+
+class _Pair(Structure):
+    _fields_ = [
+        ("x", c_int),
+        ("y", c_int)]
 
 class LatticeType(Enum):
     """The geometry of a lattice."""
