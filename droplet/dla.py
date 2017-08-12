@@ -87,10 +87,10 @@ def agg2d_as_ndarray(agg2d):
     `np.ndarray` containing aggregate particle co-ordinates.
     """
     assert isinstance(agg2d, Aggregate2D)
-    aggsize = LIBDRP.vector_size(agg2d._aggregate)
+    aggsize = LIBDRP.vector_size(agg2d._this._aggregate)
     ret = np.zeros((aggsize, 2), dtype=int)
     for idx in np.arange(aggsize):
-        addr = LIBDRP.vector_at(agg2d._aggregate, c_size_t(idx))
+        addr = LIBDRP.vector_at(agg2d._this._aggregate, c_size_t(idx))
         aggp = cast(addr, POINTER(_Pair)).contents
         ret[idx][0] = aggp.x
         ret[idx][1] = aggp.y

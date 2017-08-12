@@ -1,9 +1,7 @@
 #include "aggregate.h"
 #include <stdio.h>
 
-static inline double prand() {
-    return (double)rand()/(double)RAND_MAX;
-}
+static inline double prand() { return (double)rand()/(double)RAND_MAX; }
 
 struct aggregate_2d* aggregate_2d_alloc(void) {
     return malloc(sizeof(struct aggregate_2d));
@@ -83,12 +81,12 @@ void aggregate_2d_spawn_bp(const struct aggregate_2d* agg,
     const double ppr = prand(); // generate random number in [0, 1]
     if (agg->at == POINT) {
         if (ppr < 0.5) {
-            curr->x = agg->spawn_diam*(prand() - 0.5);
-            curr->y = ppr < 0.25 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5;
+            curr->x = (int)(agg->spawn_diam*(prand() - 0.5));
+            curr->y = (int)(ppr < 0.25 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5);
         }
         else {
-            curr->x = ppr < 0.75 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5;
-            curr->y = agg->spawn_diam*(prand() - 0.5);
+            curr->x = (int)(ppr < 0.75 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5);
+            curr->y = (int)(agg->spawn_diam*(prand() - 0.5));
         }
     }
 }
@@ -142,7 +140,7 @@ bool aggregate_2d_collision(struct aggregate_2d* agg,
 
 int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
     if (aggregate_2d_reserve(agg, n) == -1 ||
-        aggregate_2d_init_attractor(agg, n)) return -1;
+        aggregate_2d_init_attractor(agg, n) == -1) return -1;
     struct pair curr;
     struct pair prev;
     size_t steps_to_stick = 0U;
@@ -150,7 +148,6 @@ int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
     size_t count = 0U;
     bool has_next_spawned = false;
     while (count < n) {
-        printf("count = %lu\n", count);
         if (!has_next_spawned) {
             aggregate_2d_spawn_bp(agg, &curr);
             has_next_spawned = true;
@@ -158,6 +155,8 @@ int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
         prev.x = curr.x;
         prev.y = curr.y;
         aggregate_2d_update_bp(agg, &curr);
+        printf("curr.x = %d\n", curr.x);
+        printf("curr.y = %d\n", curr.y);
         if (aggregate_2d_lattice_collision(agg, &curr, &prev)) ++bcolls;
         ++steps_to_stick;
         if (aggregate_2d_collision(agg, &curr, &prev)) {
@@ -166,12 +165,9 @@ int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
             steps_to_stick = 0U;
             bcolls = 0U;
             ++count;
+            //printf("count = %lu\n", count);
             has_next_spawned = false;
         }
     }
     return 0;
-}
-
-struct pair aggregate_2d_particle_at(const struct aggregate_2d* agg, size_t idx) {
-    return *(struct pair*)vector_at(agg->_aggregate, idx);
 }

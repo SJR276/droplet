@@ -68,6 +68,4 @@ bool aggregate_2d_collision(struct aggregate_2d* agg,
 
 int aggregate_2d_generate(struct aggregate_2d* agg, size_t n);
 
-struct pair aggregate_2d_particle_at(const struct aggregate_2d* agg, size_t idx);
-
 #endif // !AGGREGATE_H_
