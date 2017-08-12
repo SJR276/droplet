@@ -1,5 +1,5 @@
 import os.path
-from ctypes import CDLL, Structure, POINTER, byref
+from ctypes import CDLL, Structure, POINTER, byref, cast
 from ctypes import c_size_t, c_ubyte, c_double, c_int
 from enum import Enum
 import numpy as np
@@ -9,7 +9,7 @@ import droplet.external.progressbar as pb
 
 LIBDROPLETNAME = "libdroplet.so"
 LIBDROPLETPATH = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + LIBDROPLETNAME
-libdroplet = CDLL(LIBDROPLETPATH)
+LIBDRP = CDLL(LIBDROPLETPATH)
 
 class _VectorWrapper(Structure):
     _fields_ = [
@@ -57,11 +57,11 @@ class Aggregate2D(object):
     def __init__(self, stickiness=1.0):
         self._this = _AggregateWrapper()
         self._handle = byref(self._this)
-        retval = libdroplet.aggregate_2d_init(self._handle, c_double(stickiness))
+        retval = LIBDRP.aggregate_2d_init(self._handle, c_double(stickiness))
         if retval == -1:
             raise MemoryError("vector allocation failure occurred in aggregate_2d_init.")
     def __del__(self):
-        libdroplet.aggregate_2d_free_fields(self._handle)
+        LIBDRP.aggregate_2d_free_fields(self._handle)
     def generate(self, nparticles):
         """Generates an aggregate consisting of `nparticles`.
 
@@ -69,9 +69,32 @@ class Aggregate2D(object):
         ----------
         nparticles -- Size of aggregate to generate.
         """
-        retval = libdroplet.aggregate_2d_generate(self._handle, c_size_t(nparticles))
+        retval = LIBDRP.aggregate_2d_generate(self._handle, c_size_t(nparticles))
         if retval == -1:
             raise MemoryError("vector reallocation failured occurred in aggregate_2d_generate.")
+
+def agg2d_as_ndarray(agg2d):
+    """Copies the internal (C) aggregate structure of an `Aggregate2D`
+    object to a `np.ndarray` with `shape=(n, 2)` where n is the size
+    of the aggregate.
+
+    Parameters
+    ----------
+    agg2d -- Object of type `Aggregate2D`.
+
+    Returns:
+    --------
+    `np.ndarray` containing aggregate particle co-ordinates.
+    """
+    assert isinstance(agg2d, Aggregate2D)
+    aggsize = LIBDRP.vector_size(agg2d._aggregate)
+    ret = np.zeros((aggsize, 2), dtype=int)
+    for idx in np.arange(aggsize):
+        addr = LIBDRP.vector_at(agg2d._aggregate, c_size_t(idx))
+        aggp = cast(addr, POINTER(_Pair)).contents
+        ret[idx][0] = aggp.x
+        ret[idx][1] = aggp.y
+    return ret
 
 class DiffusionLimitedAggregate2D(object):
     """A two-dimensional Diffusion Limited Aggregate (DLA) structure
