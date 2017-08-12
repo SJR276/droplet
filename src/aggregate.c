@@ -1,4 +1,9 @@
 #include "aggregate.h"
+#include <stdio.h>
+
+static inline double prand() {
+    return (double)rand()/(double)RAND_MAX;
+}
 
 struct aggregate_2d* aggregate_2d_alloc(void) {
     return malloc(sizeof(struct aggregate_2d));
@@ -13,7 +18,7 @@ int aggregate_2d_init(struct aggregate_2d* agg, double stickiness) {
     agg->_aggregate = (struct vector*)NULL;
     agg->_attractor = (struct vector*)NULL;
     agg->_rsteps = (struct vector*)NULL;
-    agg->_bcolls = (struct vector*)NULL;    
+    agg->_bcolls = (struct vector*)NULL;
     // try to allocate vectors
     agg->_aggregate = vector_alloc(sizeof(struct pair));
     if (!(agg->_aggregate)) goto errorcleanup;
@@ -32,6 +37,7 @@ int aggregate_2d_init(struct aggregate_2d* agg, double stickiness) {
     agg->att_size = 1U;
     agg->lt = SQUARE;
     agg->at = POINT;
+    srand(time(NULL));
     return 0;
     errorcleanup: // clean-up if memory allocation fails
         aggregate_2d_free_fields(agg);
@@ -50,33 +56,46 @@ size_t aggregate_2d_size(const struct aggregate_2d* agg) {
 }
 
 int aggregate_2d_reserve(struct aggregate_2d* agg, size_t n) {
-    int ec1 = vector_reserve(agg->_aggregate, n);
+    int ec1 = vector_reserve(agg->_rsteps, n);
     if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-    int ec2 = vector_reserve(agg->_rsteps, n);
+    int ec2 = vector_reserve(agg->_bcolls, n);
     if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
-    int ec3 = vector_reserve(agg->_bcolls, n);
-    if (ec3 == VECTOR_REALLOC_FAILURE) return -1;
     return 0;
 }
 
-void aggregate_2d_spawn_bp(const struct aggregate_2d* agg, 
+int aggregate_2d_init_attractor(struct aggregate_2d* agg, size_t n) {
+    if (agg->at == POINT) {
+        agg->att_size = 1U;
+        struct pair origin;
+        origin.x = 0; origin.y = 0;
+        int ec1 = vector_reserve(agg->_attractor, agg->att_size);
+        if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
+        int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
+        if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
+        vector_push_back(agg->_attractor, &origin, sizeof origin);
+        vector_push_back(agg->_aggregate, &origin, sizeof origin);
+    }
+    return 0;
+}
+
+void aggregate_2d_spawn_bp(const struct aggregate_2d* agg,
                            struct pair* curr) {
-    const double ppr = rand(); // generate random number in [0, 1]
+    const double ppr = prand(); // generate random number in [0, 1]
     if (agg->at == POINT) {
         if (ppr < 0.5) {
-            curr->x = agg->spawn_diam*(rand() - 0.5);
+            curr->x = agg->spawn_diam*(prand() - 0.5);
             curr->y = ppr < 0.25 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5;
         }
         else {
             curr->x = ppr < 0.75 ? agg->spawn_diam*0.5 : -agg->spawn_diam*0.5;
-            curr->y = agg->spawn_diam*(rand() - 0.5);
+            curr->y = agg->spawn_diam*(prand() - 0.5);
         }
     }
 }
 
 void aggregate_2d_update_bp(const struct aggregate_2d* agg,
                             struct pair* curr) {
-    const double md = rand();
+    const double md = prand();
     if (agg->lt == SQUARE) {
         if (md < 0.25) ++(curr->x);
         else if (md >= 0.25 && md < 0.5) --(curr->x);
@@ -103,7 +122,7 @@ bool aggregate_2d_lattice_collision(const struct aggregate_2d* agg,
 bool aggregate_2d_collision(struct aggregate_2d* agg,
                             struct pair* curr,
                             struct pair* prev) {
-    if (rand() > agg->stickiness) return false;
+    if (prand() > agg->stickiness) return false;
     for (size_t i = 0U; i < vector_size(agg->_aggregate); ++i) {
         struct pair* aggp = (struct pair*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y) {
@@ -122,7 +141,8 @@ bool aggregate_2d_collision(struct aggregate_2d* agg,
 }
 
 int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
-    aggregate_2d_reserve(agg, n);
+    if (aggregate_2d_reserve(agg, n) == -1 ||
+        aggregate_2d_init_attractor(agg, n)) return -1;
     struct pair curr;
     struct pair prev;
     size_t steps_to_stick = 0U;
@@ -130,6 +150,7 @@ int aggregate_2d_generate(struct aggregate_2d* agg, size_t n) {
     size_t count = 0U;
     bool has_next_spawned = false;
     while (count < n) {
+        printf("count = %lu\n", count);
         if (!has_next_spawned) {
             aggregate_2d_spawn_bp(agg, &curr);
             has_next_spawned = true;

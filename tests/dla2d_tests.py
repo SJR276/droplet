@@ -4,6 +4,10 @@ import droplet as drp
 from droplet.plotting import plot_aggregate2d
 from droplet.realtime import RealTimeAggregate2D
 
+def c_test(nparticles, stickiness=1.0):
+    c_agg = drp.Aggregate2D(stickiness)
+    c_agg.generate(nparticles)
+
 def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
     """Generate an aggregate of `nparticles` on a specified lattice with
     a single point attractor as the initial seed.
@@ -79,6 +83,7 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
                               filename=filename)
     return sim
 
+c_test(100)
 #point_attractor_test(500, drp.LatticeType.SQUARE)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-real_time_test(250, drp.LatticeType.SQUARE)
+#real_time_test(250, drp.LatticeType.SQUARE)

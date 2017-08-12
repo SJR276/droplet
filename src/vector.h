@@ -13,12 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 // vector error/notify codes
-#define VECTOR_REALLOC_FAILURE -1
-#define VECTOR_REALLOC_PASS 0
-#define VECTOR_REALLOC_SUCCESS 1
-#define VECTOR_RESIZE_FAILURE -1
-#define VECTOR_RESIZE_PASS 0
-#define VECTOR_RESIZE_SUCCESS 1
+#define VECTOR_REALLOC_FAILURE -1 //**< Memory reallocation failure. */
+#define VECTOR_REALLOC_PASS 0 /**< Memory reallocation skipped. */
+#define VECTOR_REALLOC_SUCCESS 1 /**< Memory reallocation succeeded. */
+#define VECTOR_RESIZE_FAILURE -1 /**< Vector resizing failure. */
+#define VECTOR_RESIZE_PASS 0 /**< Vector resizing skipped. */
+#define VECTOR_RESIZE_SUCCESS 1 /**< Vector resizing succeeded. */
 
 /**
  * \struct vector

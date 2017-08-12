@@ -2,6 +2,7 @@
 #define AGGREGATE_H_
 #include "vector.h"
 #include <math.h>
+#include <time.h>
 
 enum lattice_type {
     SQUARE,
@@ -48,6 +49,8 @@ void aggregate_2d_free_fields(struct aggregate_2d* agg);
 size_t aggregate_2d_size(const struct aggregate_2d* agg);
 
 int aggregate_2d_reserve(struct aggregate_2d* agg, size_t n);
+
+int aggregate_2d_init_attractor(struct aggregate_2d* agg, size_t n);
 
 void aggregate_2d_spawn_bp(const struct aggregate_2d* agg,
                            struct pair* curr);

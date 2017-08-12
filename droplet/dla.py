@@ -1,9 +1,15 @@
-from ctypes import Structure, POINTER, c_size_t, c_ubyte, c_double, c_int
+import os.path
+from ctypes import CDLL, Structure, POINTER, byref
+from ctypes import c_size_t, c_ubyte, c_double, c_int
 from enum import Enum
 import numpy as np
 from numpy.random import rand
 import droplet.colorprofiles as clrpr
 import droplet.external.progressbar as pb
+
+LIBDROPLETNAME = "libdroplet.so"
+LIBDROPLETPATH = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + LIBDROPLETNAME
+libdroplet = CDLL(LIBDROPLETPATH)
 
 class _VectorWrapper(Structure):
     _fields_ = [
@@ -45,6 +51,27 @@ class AttractorType(Enum):
     SPHERE = 3
     LINE = 4
     PLANE = 5
+
+class Aggregate2D(object):
+    """A two-dimensional DLA structure."""
+    def __init__(self, stickiness=1.0):
+        self._this = _AggregateWrapper()
+        self._handle = byref(self._this)
+        retval = libdroplet.aggregate_2d_init(self._handle, c_double(stickiness))
+        if retval == -1:
+            raise MemoryError("vector allocation failure occurred in aggregate_2d_init.")
+    def __del__(self):
+        libdroplet.aggregate_2d_free_fields(self._handle)
+    def generate(self, nparticles):
+        """Generates an aggregate consisting of `nparticles`.
+
+        Parameters
+        ----------
+        nparticles -- Size of aggregate to generate.
+        """
+        retval = libdroplet.aggregate_2d_generate(self._handle, c_size_t(nparticles))
+        if retval == -1:
+            raise MemoryError("vector reallocation failured occurred in aggregate_2d_generate.")
 
 class DiffusionLimitedAggregate2D(object):
     """A two-dimensional Diffusion Limited Aggregate (DLA) structure
