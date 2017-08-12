@@ -1,5 +1,6 @@
 import sys
 sys.path.append("../")
+import matplotlib.pyplot as plt
 import droplet as drp
 from droplet.plotting import plot_aggregate2d
 from droplet.realtime import RealTimeAggregate2D
@@ -7,6 +8,7 @@ from droplet.realtime import RealTimeAggregate2D
 def c_test(nparticles, stickiness=1.0):
     c_agg = drp.Aggregate2D(stickiness)
     c_agg.generate(nparticles)
+    return drp.agg2d_as_ndarray(c_agg), c_agg.colors
 
 def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
     """Generate an aggregate of `nparticles` on a specified lattice with
@@ -83,7 +85,10 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
                               filename=filename)
     return sim
 
-c_test(100)
+aggregate, colors = c_test(1000)
+fig, axes = plt.subplots(1,1)
+axes.scatter(aggregate[:, 0], aggregate[:, 1], c=colors)
+fig.show()
 #point_attractor_test(500, drp.LatticeType.SQUARE)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
 #real_time_test(250, drp.LatticeType.SQUARE)

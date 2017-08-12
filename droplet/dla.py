@@ -54,14 +54,33 @@ class AttractorType(Enum):
 
 class Aggregate2D(object):
     """A two-dimensional DLA structure."""
-    def __init__(self, stickiness=1.0):
+    def __init__(self, stickiness=1.0, color_profile=clrpr.blue_through_red):
         self._this = _AggregateWrapper()
         self._handle = byref(self._this)
         retval = LIBDRP.aggregate_2d_init(self._handle, c_double(stickiness))
         if retval == -1:
             raise MemoryError("vector allocation failure occurred in aggregate_2d_init.")
+        self.colors = np.array(0)
     def __del__(self):
         LIBDRP.aggregate_2d_free_fields(self._handle)
+    @property
+    def max_x(self):
+        """Obtains the maximum x co-ordinate value of the aggregate.
+
+        Returns:
+        --------
+        Maximum extent of the aggregate in the x-direction.
+        """
+        return self._this.max_x
+    @property
+    def max_y(self):
+        """Obtains the maximum y co-ordinate value of the aggregate.
+
+        Returns:
+        --------
+        Maximum extent of the aggregate in the y-direction.
+        """
+        return self._this.max_y
     def generate(self, nparticles):
         """Generates an aggregate consisting of `nparticles`.
 
@@ -71,7 +90,10 @@ class Aggregate2D(object):
         """
         retval = LIBDRP.aggregate_2d_generate(self._handle, c_size_t(nparticles))
         if retval == -1:
-            raise MemoryError("vector reallocation failured occurred in aggregate_2d_generate.")
+            raise MemoryError("vector reallocation failure occurred in aggregate_2d_generate.")
+        # initialise colors for each particle in aggregate
+        self.colors = np.zeros(nparticles+self._this.att_size, dtype=(float, 3))
+        clrpr.blue_through_red(self.colors)
 
 def agg2d_as_ndarray(agg2d):
     """Copies the internal (C) aggregate structure of an `Aggregate2D`
