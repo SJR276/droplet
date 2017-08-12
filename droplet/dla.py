@@ -1,6 +1,6 @@
 import os.path
 from ctypes import CDLL, Structure, POINTER, byref, cast
-from ctypes import c_size_t, c_ubyte, c_double, c_int
+from ctypes import c_size_t, c_ubyte, c_double, c_int, c_bool
 from enum import Enum
 import numpy as np
 from numpy.random import rand
@@ -61,6 +61,7 @@ class Aggregate2D(object):
         if retval == -1:
             raise MemoryError("vector allocation failure occurred in aggregate_2d_init.")
         self.colors = np.array(0)
+        self.__aggregate = np.array(0)
     def __del__(self):
         LIBDRP.aggregate_2d_free_fields(self._handle)
     @property
@@ -94,6 +95,45 @@ class Aggregate2D(object):
         # initialise colors for each particle in aggregate
         self.colors = np.zeros(nparticles+self._this.att_size, dtype=(float, 3))
         clrpr.blue_through_red(self.colors)
+    def generate_stream(self, nparticles):
+        """Generator function for streaming aggregate data to a real-time plot.
+
+        Parameters
+        ----------
+        nparticles -- Size of aggregate to generate.
+        """
+        LIBDRP.aggregate_2d_lattice_collision.restype = c_bool
+        LIBDRP.aggregate_2d_collision.restype = c_bool
+        rv_res = LIBDRP.aggregate_2d_reserve(self._handle, c_size_t(nparticles))
+        if rv_res == -1:
+            raise MemoryError("vector reallocation failure occurred in aggregate_2d_reserve.")
+        rv_ia = LIBDRP.aggregate_2d_init_attractor(self._handle, c_size_t(nparticles))
+        if rv_ia == -1:
+            raise MemoryError("vector reallocation failure occurred in aggregate_2d_init_attractor")
+        self.__aggregate = np.zeros((nparticles + self._this.att_size, 2), dtype=int)
+        self.colors = np.zeros(2*(nparticles+self._this.att_size), dtype=(float, 3))
+        clrpr.blue_through_red(self.colors)
+        curr = _Pair()
+        prev = _Pair()
+        has_next_spawned = False
+        count = 0
+        while count < nparticles:
+            if not has_next_spawned:
+                LIBDRP.aggregate_2d_spawn_bp(self._handle, byref(curr))
+                has_next_spawned = True
+            prev.x = curr.x
+            prev.y = curr.y
+            LIBDRP.aggregate_2d_update_bp(self._handle, byref(curr))
+            LIBDRP.aggregate_2d_lattice_collision(self._handle, byref(curr), byref(prev))
+            if LIBDRP.aggregate_2d_collision(self._handle, byref(curr), byref(prev)):
+                addr_rec = LIBDRP.vector_at(self._this._aggregate,
+                                            c_size_t(count + self._this.att_size))
+                aggp_rec = cast(addr_rec, POINTER(_Pair)).contents
+                self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
+                self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
+                count += 1
+                has_next_spawned = False
+                yield self.__aggregate, self.colors, count
 
 def agg2d_as_ndarray(agg2d):
     """Copies the internal (C) aggregate structure of an `Aggregate2D`

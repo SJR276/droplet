@@ -79,16 +79,18 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
     --------
     The handle to the simulation instance.
     """
-    point_agg_rt = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
-                                                   lattice_type=lattice_type)
+    point_agg_rt = drp.Aggregate2D(stickiness=stickiness)
+    #point_agg_rt = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
+    #                                               lattice_type=lattice_type)
     sim = RealTimeAggregate2D(point_agg_rt, nparticles, save=save, blitting=blitting,
                               filename=filename)
     return sim
 
-aggregate, colors = c_test(1000)
-fig, axes = plt.subplots(1,1)
-axes.scatter(aggregate[:, 0], aggregate[:, 1], c=colors)
-fig.show()
+real_time_test(1000, drp.LatticeType.SQUARE)
+#aggregate, colors = c_test(1000)
+#fig, axes = plt.subplots(1,1)
+#axes.scatter(aggregate[:, 0], aggregate[:, 1], c=colors)
+#fig.show()
 #point_attractor_test(500, drp.LatticeType.SQUARE)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
 #real_time_test(250, drp.LatticeType.SQUARE)

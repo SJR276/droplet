@@ -28,7 +28,7 @@ class RealTimeAggregate2D(object):
         writer -- Type of writer to user for saving if `save == True`, defaults
         to `imagemagick`.
         """
-        assert isinstance(aggregate, DiffusionLimitedAggregate2D)
+        #assert isinstance(aggregate, DiffusionLimitedAggregate2D)
         self.numparticles = nparticles
         self.prad = prad
         self.stream = aggregate.generate_stream(nparticles)
