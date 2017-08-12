@@ -35,28 +35,29 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
     fig.show()
     return fig, axes
 
-def plot_aggregate3d(aggregate, prad=2, edgecolors='none', alpha=0.7):
-    assert isinstance(aggregate, drp.DiffusionLimitedAggregate3D)
-    agg_x = aggregate.x_coords
-    agg_y = aggregate.y_coords
-    agg_z = aggregate.z_coords
+def plot_aggregate3d(aggregate, prad=2, edgecolors='none', alpha=0.7,
+                     scalefactor=1.5):
+    assert isinstance(aggregate, drp.Aggregate3D)
+    agg = aggregate.as_ndarray()
+    max_x = aggregate.max_x
+    max_y = aggregate.max_y
+    max_z = aggregate.max_z
     color = aggregate.colors
     parea = np.pi*prad*prad
-    aggsz = len(agg_x)
     fig = plt.figure()
     axes = fig.add_subplot(111, projection='3d')
-    axes.set_xlim(-aggsz/20, aggsz/20)
-    axes.set_ylim(-aggsz/20, aggsz/20)
-    axes.set_zlim(-aggsz/20, aggsz/20)
-    axes.scatter(agg_x, agg_y, agg_z, c=color, s=parea, edgecolors=edgecolors,
-                 alpha=alpha)
+    axes.set_xlim(-max_x*scalefactor, max_x*scalefactor)
+    axes.set_ylim(-max_y*scalefactor, max_y*scalefactor)
+    axes.set_zlim(-max_z*scalefactor, max_z*scalefactor)
+    axes.scatter(agg[:, 0], agg[:, 1], agg[:, 2], c=color, s=parea,
+                 edgecolors=edgecolors, alpha=alpha)
     fig.show()
     return fig, axes
 
 def plot_aggregate(aggregate, prad=2, edgecolors='none', alpha=1.0):
-    if isinstance(aggregate, drp.DiffusionLimitedAggregate2D):
+    if isinstance(aggregate, drp.Aggregate2D):
         return plot_aggregate2d(aggregate, prad=prad,
                                 edgecolors=edgecolors, alpha=alpha)
-    elif isinstance(aggregate, drp.DiffusionLimitedAggregate3D):
+    elif isinstance(aggregate, drp.Aggregate3D):
         return plot_aggregate3d(aggregate, prad=prad,
                                 edgecolors=edgecolors, alpha=alpha)

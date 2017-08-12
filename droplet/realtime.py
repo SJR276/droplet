@@ -2,8 +2,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from droplet.dla import DiffusionLimitedAggregate2D
-from droplet.dla import DiffusionLimitedAggregate3D
+from droplet.dla import Aggregate2D
+from droplet.dla import Aggregate3D
 
 class RealTimeAggregate2D(object):
     """A real-time scatter plot of a two-dimensional Diffusion Limited
@@ -28,7 +28,7 @@ class RealTimeAggregate2D(object):
         writer -- Type of writer to user for saving if `save == True`, defaults
         to `imagemagick`.
         """
-        #assert isinstance(aggregate, DiffusionLimitedAggregate2D)
+        assert isinstance(aggregate, Aggregate2D)
         self.numparticles = nparticles
         self.prad = prad
         self.stream = aggregate.generate_stream(nparticles)
@@ -111,7 +111,7 @@ class RealTimeAggregate3D(object):
         filename -- Name, and extension, of file to write to if `save == True`.
         writer -- Type of writer to use for saving, defaults to `imagemagick`.
         """
-        assert isinstance(aggregate, DiffusionLimitedAggregate3D)
+        assert isinstance(aggregate, Aggregate3D)
         self.numparticles = nparticles
         self.prad = prad
         self.angle = 0

@@ -1,5 +1,5 @@
 import os.path
-from ctypes import CDLL, Structure, POINTER, byref, cast
+from ctypes import CDLL, Structure, POINTER, byref, cast, sizeof
 from ctypes import c_size_t, c_ubyte, c_double, c_int, c_bool
 from enum import Enum
 import numpy as np
@@ -10,6 +10,17 @@ import droplet.external.progressbar as pb
 LIBDROPLETNAME = "libdroplet.so"
 LIBDROPLETPATH = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + LIBDROPLETNAME
 LIBDRP = CDLL(LIBDROPLETPATH)
+
+class _Pair(Structure):
+    _fields_ = [
+        ("x", c_int),
+        ("y", c_int)]
+
+class _Triplet(Structure):
+    _fields_ = [
+        ("x", c_int),
+        ("y", c_int),
+        ("z", c_int)]
 
 class _VectorWrapper(Structure):
     _fields_ = [
@@ -27,17 +38,13 @@ class _AggregateWrapper(Structure):
         ("stickiness", c_double),
         ("max_x", c_size_t),
         ("max_y", c_size_t),
+        ("max_z", c_size_t),
         ("max_r_sqd", c_size_t),
         ("b_offset", c_size_t),
         ("spawn_diam", c_size_t),
         ("att_size", c_size_t),
         ("lt", c_int),
         ("at", c_int)]
-
-class _Pair(Structure):
-    _fields_ = [
-        ("x", c_int),
-        ("y", c_int)]
 
 class LatticeType(Enum):
     """The geometry of a lattice."""
@@ -68,7 +75,7 @@ class Aggregate2D(object):
         self.colors = np.array(0)
         self.__aggregate = np.array(0)
     def __del__(self):
-        LIBDRP.aggregate_2d_free_fields(self._handle)
+        LIBDRP.aggregate_free_fields(self._handle)
     @property
     def stickiness(self):
         """Returns the stickiness property of the aggregate. This describes
@@ -91,10 +98,9 @@ class Aggregate2D(object):
         Exceptions
         ----------
         Raises `ValueError` if `value` not in [0, 1].
-
+        """
         if value < 0.0 or value > 1.0:
             raise ValueError("Stickiness of aggregate must be in [0, 1].")
-        """
         self._this.stickiness = c_double(value)
     @property
     def required_steps(self):
@@ -168,18 +174,21 @@ class Aggregate2D(object):
         """
         LIBDRP.aggregate_2d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_2d_collision.restype = c_bool
-        rv_res = LIBDRP.aggregate_2d_reserve(self._handle, c_size_t(nparticles))
+        rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
         if rv_res == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_2d_reserve.")
         rv_ia = LIBDRP.aggregate_2d_init_attractor(self._handle, c_size_t(nparticles))
         if rv_ia == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_2d_init_attractor")
         self.__aggregate = np.zeros((nparticles + self._this.att_size, 2), dtype=int)
+        # assign colors for each aggregate particle based upon color profile
         self.colors = np.zeros(2*(nparticles+self._this.att_size), dtype=(float, 3))
         clrpr.blue_through_red(self.colors)
         curr = _Pair()
         prev = _Pair()
         has_next_spawned = False
+        rsteps = c_size_t(0) # required steps to stick
+        bcolls = c_size_t(0) # lattice boundary collisions before stick
         count = 0
         while count < nparticles:
             if not has_next_spawned:
@@ -188,13 +197,105 @@ class Aggregate2D(object):
             prev.x = curr.x
             prev.y = curr.y
             LIBDRP.aggregate_2d_update_bp(self._handle, byref(curr))
-            LIBDRP.aggregate_2d_lattice_collision(self._handle, byref(curr), byref(prev))
+            if LIBDRP.aggregate_2d_lattice_collision(self._handle, byref(curr), byref(prev)):
+                bcolls = c_size_t(bcolls.value + 1)
+            rsteps = c_size_t(rsteps.value + 1)
             if LIBDRP.aggregate_2d_collision(self._handle, byref(curr), byref(prev)):
                 addr_rec = LIBDRP.vector_at(self._this._aggregate,
                                             c_size_t(count + self._this.att_size))
                 aggp_rec = cast(addr_rec, POINTER(_Pair)).contents
                 self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
                 self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
+                LIBDRP.vector_push_back(self._this._rsteps, byref(rsteps), sizeof(c_size_t))
+                LIBDRP.vector_push_back(self._this._bcolls, byref(bcolls), sizeof(c_size_t))
+                rsteps = c_size_t(0)
+                bcolls = c_size_t(0)
+                count += 1
+                has_next_spawned = False
+                yield self.__aggregate, self.colors, count
+
+class Aggregate3D(object):
+    """A three-dimensional DLA structure."""
+    def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
+                 attractor_type=AttractorType.POINT,
+                 color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
+        self._this = _AggregateWrapper()
+        self._handle = byref(self._this)
+        retval = LIBDRP.aggregate_3d_init(self._handle, c_double(stickiness),
+                                          c_int(lattice_type.value),
+                                          c_int(attractor_type.value))
+        if retval == -1:
+            raise MemoryError("vector allocation failure occurred in aggregate_3d_init.")
+        self.color_profile = color_profile
+        self.colors = np.array(0)
+        self.__aggregate = np.array(0)
+    def __del__(self):
+        LIBDRP.aggregate_free_fields(self._handle)
+    @property
+    def stickiness(self):
+        return self._this.stickiness
+    @stickiness.setter
+    def stickiness(self, value):
+        if value < 0.0 or value > 1.0:
+            raise ValueError("Stickiness of aggregate must be in [0, 1].")
+        self._this.stickiness = c_double(value)
+    @property
+    def max_x(self):
+        return self._this.max_x
+    @property
+    def max_y(self):
+        return self._this.max_y
+    @property
+    def max_z(self):
+        return self._this.max_z
+    def as_ndarray(self):
+        aggsize = LIBDRP.vector_size(self._this._aggregate)
+        ret = np.zeros((aggsize, 3), dtype=int)
+        for idx in np.arange(aggsize):
+            addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
+            aggp = cast(addr, POINTER(_Triplet)).contents
+            ret[idx][0] = aggp.x
+            ret[idx][1] = aggp.y
+            ret[idx][2] = aggp.z
+        return ret
+    def generate(self, nparticles):
+        retval = LIBDRP.aggregate_3d_generate(self._handle, c_size_t(nparticles))
+        if retval == -1:
+            raise MemoryError("vector reallocation failure occurred in aggregate_3d_generate.")
+        self.colors = np.zeros(nparticles+self._this.att_size, dtype=(float, 3))
+        clrpr.blue_through_red(self.colors)
+    def generate_stream(self, nparticles):
+        LIBDRP.aggregate_3d_lattice_collision.restype = c_bool
+        LIBDRP.aggregate_3d_collision.restype = c_bool
+        rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
+        if rv_res == -1:
+            raise MemoryError("vector reallocation failure occurred in aggregate_reserve.")
+        rv_ia = LIBDRP.aggregate_3d_init_attractor(self._handle, c_size_t(nparticles))
+        if rv_ia == -1:
+            raise MemoryError("vector reallocation failure occurred in aggregate_3d_init_attractor.")
+        self.__aggregate = np.zeros((nparticles + self._this.att_size, 3), dtype=int)
+        self.colors = np.zeros(2*(nparticles+self._this.att_size), dtype=(float, 3))
+        clrpr.blue_through_red(self.colors)
+        curr = _Triplet()
+        prev = _Triplet()
+        has_next_spawned = False
+        count = 0
+        while count < nparticles:
+            if not has_next_spawned:
+                LIBDRP.aggregate_3d_spawn_bp(self._handle, byref(curr))
+                has_next_spawned = True
+            prev.x = curr.x
+            prev.y = curr.y
+            prev.z = curr.z
+            LIBDRP.aggregate_3d_update_bp(self._handle, byref(curr))
+            LIBDRP.aggregate_3d_lattice_collision(self._handle, byref(curr), byref(prev))
+            if LIBDRP.aggregate_3d_collision(self._handle, byref(curr), byref(prev)):
+                addr_rec = LIBDRP.vector_at(self._this._aggregate,
+                                            c_size_t(count + self._this.att_size))
+                aggp_rec = cast(addr_rec, POINTER(_Triplet)).contents
+                self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
+                self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
+                self.__aggregate[count+self._this.att_size][2] = aggp_rec.z
                 count += 1
                 has_next_spawned = False
                 yield self.__aggregate, self.colors, count

@@ -82,4 +82,4 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
 
 #point_attractor_test(2000, drp.LatticeType.TRIANGLE)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-#real_time_test(2500, drp.LatticeType.TRIANGLE)
+real_time_test(1000, drp.LatticeType.TRIANGLE)
