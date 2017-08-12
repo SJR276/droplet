@@ -19,9 +19,9 @@ void aggregate_free_fields(struct aggregate* agg) {
 }
 
 int aggregate_reserve(struct aggregate* agg, size_t n) {
-    int ec1 = vector_reserve(agg->_rsteps, n);
+    const int ec1 = vector_reserve(agg->_rsteps, n);
     if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-    int ec2 = vector_reserve(agg->_bcolls, n);
+    const int ec2 = vector_reserve(agg->_bcolls, n);
     if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
     return 0;
 }
@@ -66,17 +66,17 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
     if (agg->at == POINT) {
         struct pair origin;
         origin.x = 0; origin.y = 0;
-        int ec1 = vector_reserve(agg->_attractor, agg->att_size);
+        const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-        int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
+        const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         vector_push_back(agg->_attractor, &origin, sizeof origin);
         vector_push_back(agg->_aggregate, &origin, sizeof origin);
     }
     else if (agg->at == LINE) {
-        int ec1 = vector_reserve(agg->_attractor, agg->att_size);
+        const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-        int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
+        const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         for (int i = 0; i < (int)agg->att_size; ++i) {
             struct pair attp;
@@ -87,15 +87,16 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
         }
     }
     else if (agg->at == CIRCLE) {
-        size_t attparticles = (size_t)(2.0*M_PI*agg->att_size) + 1U;
-        int ec1 = vector_reserve(agg->_attractor, attparticles);
+        const size_t attparticles = (size_t)(2.0*M_PI*agg->att_size) + 1U;
+        const int ec1 = vector_reserve(agg->_attractor, attparticles);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-        int ec2 = vector_reserve(agg->_aggregate, attparticles);
+        const int ec2 = vector_reserve(agg->_aggregate, attparticles);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
-        for (double theta = 0.0; theta < 2.0*M_PI; theta += 1.0/agg->att_size) {
+        const double step = 1.0/agg->att_size;
+        for (double theta = 0.0; theta < 2.0*M_PI + step; theta += step) {
             struct pair attp;
-            attp.x = agg->att_size*cos(theta);
-            attp.y = agg->att_size*sin(theta);
+            attp.x = (int)(agg->att_size*cos(theta));
+            attp.y = (int)(agg->att_size*sin(theta));
             vector_push_back(agg->_attractor, &attp, sizeof attp);
             vector_push_back(agg->_aggregate, &attp, sizeof attp);
         }
@@ -157,7 +158,7 @@ bool aggregate_2d_lattice_collision(const struct aggregate* agg,
                                     struct pair* curr,
                                     const struct pair* prev) {
     const int epsilon = 2;
-    if (agg->at == POINT) {
+    if (agg->at == POINT || agg->at == CIRCLE) {
         const int bnd_absmax = (int)(agg->spawn_diam*0.5 + epsilon);
         if (abs(curr->x) > bnd_absmax || abs(curr->y) > bnd_absmax) {
             curr->x = prev->x;
@@ -180,11 +181,15 @@ bool aggregate_2d_collision(struct aggregate* agg,
                             struct pair* prev) {
     if (prand() > agg->stickiness) return false;
     for (size_t i = 0U; i < vector_size(agg->_aggregate); ++i) {
-        struct pair* aggp = (struct pair*)vector_at(agg->_aggregate, i);
+        const struct pair* aggp = (struct pair*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y) {
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
             if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);
-            if (abs(prev->y) > agg->max_y) agg->max_y = abs(prev->y);
+            bool expand_spawn_line = false;
+            if (abs(prev->y) > agg->max_y) {
+                agg->max_y = abs(prev->y);
+                expand_spawn_line = true;
+            }
             if (agg->at == POINT) {
                 double rsqd = prev->x * prev->x + prev->y * prev->y;
                 if (rsqd > agg->max_r_sqd) {
@@ -192,6 +197,8 @@ bool aggregate_2d_collision(struct aggregate* agg,
                     agg->spawn_diam = 2*(int)(sqrt(rsqd)) + agg->b_offset;
                 }
             }
+            if (agg->at == LINE && expand_spawn_line)
+                agg->spawn_diam = prev->y + agg->b_offset;
             return true;
         }
     }
@@ -270,12 +277,76 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
     if (agg->at == POINT) {
         struct triplet origin;
         origin.x = 0; origin.y = 0; origin.z = 0;
-        int ec1 = vector_reserve(agg->_attractor, agg->att_size);
+        const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
-        int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
+        const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         vector_push_back(agg->_attractor, &origin, sizeof origin);
         vector_push_back(agg->_aggregate, &origin, sizeof origin);
+    }
+    else if (agg->at == LINE) {
+        const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
+        if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
+        const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
+        if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
+        for (int i = 0; i < (int)agg->att_size; ++i) {
+            struct triplet attp;
+            attp.x = i - (int)(0.5*agg->att_size);
+            attp.y = 0; attp.z = 0;
+            vector_push_back(agg->_attractor, &attp, sizeof attp);
+            vector_push_back(agg->_aggregate, &attp, sizeof attp);
+        }
+    }
+    else if (agg->at == PLANE) {
+        const size_t attparticles = agg->att_size*agg->att_size;
+        const int ec1 = vector_reserve(agg->_attractor, attparticles);
+        if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
+        const int ec2 = vector_reserve(agg->_aggregate, n + attparticles);
+        if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
+        for (int i = 0; i < (int)agg->att_size; ++i) {
+            for (int j = 0; j < (int)agg->att_size; ++j) {
+                struct triplet attp;
+                attp.x = i - (int)(0.5*agg->att_size);
+                attp.y = j - (int)(0.5*agg->att_size);
+                attp.z = 0;
+                vector_push_back(agg->_attractor, &attp, sizeof attp);
+                vector_push_back(agg->_aggregate, &attp, sizeof attp);
+            }
+        }
+    }
+    else if (agg->at == CIRCLE) {
+        const size_t attparticles = (size_t)(2.0*M_PI*agg->att_size) + 1U;
+        const int ec1 = vector_reserve(agg->_attractor, attparticles);
+        if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
+        const int ec2 = vector_reserve(agg->_aggregate, attparticles);
+        if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
+        const double step = 1.0/agg->att_size;
+        for (double theta = 0.0; theta < 2.0*M_PI + step; theta += step) {
+            struct triplet attp;
+            attp.x = (int)(agg->att_size*cos(theta));
+            attp.y = (int)(agg->att_size*sin(theta));
+            attp.z = 0;
+            vector_push_back(agg->_attractor, &attp, sizeof attp);
+            vector_push_back(agg->_aggregate, &attp, sizeof attp);
+        }
+    }
+    else if (agg->at == SPHERE) {
+        const size_t attparticles = (size_t)((2*M_PI*agg->att_size + 1)*(M_PI*agg->att_size + 1));
+        const int ec1 = vector_reserve(agg->_attractor, attparticles);
+        if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
+        const int ec2 = vector_reserve(agg->_aggregate, attparticles);
+        if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
+        const double step = 1.0/agg->att_size;
+        for (double phi = 0.0; phi < 2.0*M_PI + step; phi += step) { // azimuthal
+            for (double theta = -0.5*M_PI; theta < 0.5*M_PI + step; theta += step) { // polar
+                struct triplet attp;
+                attp.x = (int)(agg->att_size*sin(theta)*cos(phi));
+                attp.y = (int)(agg->att_size*sin(theta)*sin(phi));
+                attp.z = (int)(agg->att_size*cos(theta));
+                vector_push_back(agg->_attractor, &attp, sizeof attp);
+                vector_push_back(agg->_aggregate, &attp, sizeof attp);
+            }
+        }
     }
     return 0;
 }
@@ -299,6 +370,16 @@ void aggregate_3d_spawn_bp(const struct aggregate* agg,
             curr->y = (ppr < 5.0/6.0) ? (int)(agg->spawn_diam*0.5) : -(int)(agg->spawn_diam*0.5);
             curr->z = (int)(agg->spawn_diam*(prand() - 0.5));
         }
+    }
+    else if (agg->at == LINE) {
+        curr->x = 2*(int)(agg->att_size*(prand() - 0.5));
+        curr->y = (ppr < 0.5) ? (int)agg->spawn_diam : -(int)agg->spawn_diam;
+        curr->z = (ppr < 0.5) ? (int)agg->spawn_diam : -(int)agg->spawn_diam;
+    }
+    else if (agg->at == PLANE) {
+        curr->x = 2*(int)(agg->att_size*(prand() - 0.5));
+        curr->y = 2*(int)(agg->att_size*(prand() - 0.5));
+        curr->z = (ppr < 0.5) ? (int)agg->spawn_diam : - (int)agg->spawn_diam;
     }
 }
 
@@ -341,10 +422,30 @@ bool aggregate_3d_lattice_collision(const struct aggregate* agg,
     struct triplet* curr,
     const struct triplet* prev) {
     const int epsilon = 2;
-    if (agg->at == POINT) {
+    if (agg->at == POINT || agg->at == CIRCLE || agg->at == SPHERE) {
         const int bnd_absmax = (int)(agg->spawn_diam*0.5) + epsilon;
         if (abs(curr->x) > bnd_absmax || abs(curr->y) > bnd_absmax
             || abs(curr->z) > bnd_absmax) {
+            curr->x = prev->x;
+            curr->y = prev->y;
+            curr->z = prev->z;
+            return true;
+        }
+    }
+    else if (agg->at == LINE) {
+        if (abs(curr->x) > 2*(int)agg->att_size ||
+            abs(curr->y) > (int)agg->spawn_diam + epsilon ||
+            abs(curr->z) > (int)agg->spawn_diam + epsilon) {
+            curr->x = prev->x;
+            curr->y = prev->y;
+            curr->z = prev->z;
+            return true;
+        }
+    }
+    else if (agg->at == PLANE) {
+        if (abs(curr->x) > 2*(int)agg->att_size ||
+            abs(curr->y) > 2*(int)agg->att_size ||
+            abs(curr->z) > (int)agg->spawn_diam + epsilon) {
             curr->x = prev->x;
             curr->y = prev->y;
             curr->z = prev->z;
@@ -359,7 +460,7 @@ bool aggregate_3d_collision(struct aggregate* agg,
     struct triplet* prev) {
     if (prand() > agg->stickiness) return false;
     for (size_t i = 0U; i < vector_size(agg->_aggregate); ++i) {
-        struct triplet* aggp = (struct triplet*)vector_at(agg->_aggregate, i);
+        const struct triplet* aggp = (struct triplet*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y && curr->z == aggp->z) {
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
             if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);

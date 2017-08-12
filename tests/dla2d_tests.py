@@ -79,8 +79,7 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
                               filename=filename)
     return sim
 
-#point_attractor_test(2000, drp.LatticeType.TRIANGLE)
-#line_attractor_test(1000, drp.LatticeType.SQUARE, 100)
+point_attractor_test(2000, drp.LatticeType.TRIANGLE)
+#line_attractor_test(1000, drp.LatticeType.SQUARE, 20)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-real_time_test(500, drp.LatticeType.SQUARE, save=True,
-               filename="../example_images/agg2dtest.gif")
+#real_time_test(1000, drp.LatticeType.SQUARE)
