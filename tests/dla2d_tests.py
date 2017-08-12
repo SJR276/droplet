@@ -5,11 +5,6 @@ import droplet as drp
 from droplet.plotting import plot_aggregate2d
 from droplet.realtime import RealTimeAggregate2D
 
-def c_test(nparticles, stickiness=1.0):
-    c_agg = drp.Aggregate2D(stickiness)
-    c_agg.generate(nparticles)
-    return drp.agg2d_as_ndarray(c_agg), c_agg.colors
-
 def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
     """Generate an aggregate of `nparticles` on a specified lattice with
     a single point attractor as the initial seed.
@@ -20,8 +15,8 @@ def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
     lattice_type -- Type of lattice.
     stickiness -- Stickiness value of the aggregate [default 1.0].
     """
-    point_agg = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
-                                                lattice_type=lattice_type)
+    point_agg = drp.Aggregate2D(stickiness=stickiness,
+                                lattice_type=lattice_type)
     point_agg.generate(nparticles)
     plot_aggregate2d(point_agg)
 
@@ -79,18 +74,12 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
     --------
     The handle to the simulation instance.
     """
-    point_agg_rt = drp.Aggregate2D(stickiness=stickiness)
-    #point_agg_rt = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
-    #                                               lattice_type=lattice_type)
+    point_agg_rt = drp.Aggregate2D(stickiness=stickiness,
+                                   lattice_type=lattice_type)
     sim = RealTimeAggregate2D(point_agg_rt, nparticles, save=save, blitting=blitting,
                               filename=filename)
     return sim
 
-real_time_test(1000, drp.LatticeType.SQUARE)
-#aggregate, colors = c_test(1000)
-#fig, axes = plt.subplots(1,1)
-#axes.scatter(aggregate[:, 0], aggregate[:, 1], c=colors)
-#fig.show()
-#point_attractor_test(500, drp.LatticeType.SQUARE)
+#point_attractor_test(2000, drp.LatticeType.TRIANGLE)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-#real_time_test(250, drp.LatticeType.SQUARE)
+#real_time_test(2500, drp.LatticeType.TRIANGLE)

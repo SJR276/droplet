@@ -41,29 +41,77 @@ class _Pair(Structure):
 
 class LatticeType(Enum):
     """The geometry of a lattice."""
-    SQUARE = 1
-    TRIANGLE = 2
+    SQUARE = 0
+    TRIANGLE = 1
 
 class AttractorType(Enum):
     """The initial attractor seed of an aggregate."""
-    POINT = 1
-    CIRCLE = 2
-    SPHERE = 3
-    LINE = 4
-    PLANE = 5
+    POINT = 0
+    CIRCLE = 1
+    SPHERE = 2
+    LINE = 3
+    PLANE = 4
 
 class Aggregate2D(object):
     """A two-dimensional DLA structure."""
-    def __init__(self, stickiness=1.0, color_profile=clrpr.blue_through_red):
+    def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
+                 attractor_type=AttractorType.POINT,
+                 color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
         self._this = _AggregateWrapper()
         self._handle = byref(self._this)
-        retval = LIBDRP.aggregate_2d_init(self._handle, c_double(stickiness))
+        retval = LIBDRP.aggregate_2d_init(self._handle, c_double(stickiness),
+                                          c_int(lattice_type.value),
+                                          c_int(attractor_type.value))
         if retval == -1:
             raise MemoryError("vector allocation failure occurred in aggregate_2d_init.")
+        self.color_profile = color_profile
         self.colors = np.array(0)
         self.__aggregate = np.array(0)
     def __del__(self):
         LIBDRP.aggregate_2d_free_fields(self._handle)
+    @property
+    def stickiness(self):
+        """Returns the stickiness property of the aggregate. This describes
+        the probability of a particle sticking to the aggregate upon collision.
+
+        Returns
+        -------
+        The aggregate stickiness parameter.
+        """
+        return self._this.stickiness
+    @stickiness.setter
+    def stickiness(self, value):
+        """Sets the value of the stickiness of the aggregate. This parameter determines
+        the probability of a particle sticking to the aggregate upon collision.
+
+        Parameters
+        ----------
+        value -- Value of the stickiness to set.
+
+        Exceptions
+        ----------
+        Raises `ValueError` if `value` not in [0, 1].
+
+        if value < 0.0 or value > 1.0:
+            raise ValueError("Stickiness of aggregate must be in [0, 1].")
+        """
+        self._this.stickiness = c_double(value)
+    @property
+    def required_steps(self):
+        aggsize = LIBDRP.vector_size(self._this._rsteps)
+        ret = np.zeros(aggsize, dtype=int)
+        for idx in np.arange(aggsize):
+            addr = LIBDRP.vector_at(self._this._rsteps, c_size_t(idx))
+            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+        return ret
+    @property
+    def boundary_collisions(self):
+        aggsize = LIBDRP.vector_size(self._this._bcolls)
+        ret = np.zeros(aggsize, dtype=int)
+        for idx in np.arange(aggsize):
+            addr = LIBDRP.vector_at(self._this._bcolls, c_size_t(idx))
+            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+        return ret
     @property
     def max_x(self):
         """Obtains the maximum x co-ordinate value of the aggregate.
@@ -82,6 +130,22 @@ class Aggregate2D(object):
         Maximum extent of the aggregate in the y-direction.
         """
         return self._this.max_y
+    def as_ndarray(self):
+        """Copies the internal (C) aggregate structure to a `np.ndarray`
+        with `shape=(n, 2)` where `n` is the size of the aggregate.
+
+        Returns
+        -------
+        An instance of `np.ndarray` containing aggregate particle co-ordinates.
+        """
+        aggsize = LIBDRP.vector_size(self._this._aggregate)
+        ret = np.zeros((aggsize, 2), dtype=int)
+        for idx in np.arange(aggsize):
+            addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
+            aggp = cast(addr, POINTER(_Pair)).contents
+            ret[idx][0] = aggp.x
+            ret[idx][1] = aggp.y
+        return ret
     def generate(self, nparticles):
         """Generates an aggregate consisting of `nparticles`.
 
@@ -134,29 +198,6 @@ class Aggregate2D(object):
                 count += 1
                 has_next_spawned = False
                 yield self.__aggregate, self.colors, count
-
-def agg2d_as_ndarray(agg2d):
-    """Copies the internal (C) aggregate structure of an `Aggregate2D`
-    object to a `np.ndarray` with `shape=(n, 2)` where n is the size
-    of the aggregate.
-
-    Parameters
-    ----------
-    agg2d -- Object of type `Aggregate2D`.
-
-    Returns:
-    --------
-    `np.ndarray` containing aggregate particle co-ordinates.
-    """
-    assert isinstance(agg2d, Aggregate2D)
-    aggsize = LIBDRP.vector_size(agg2d._this._aggregate)
-    ret = np.zeros((aggsize, 2), dtype=int)
-    for idx in np.arange(aggsize):
-        addr = LIBDRP.vector_at(agg2d._this._aggregate, c_size_t(idx))
-        aggp = cast(addr, POINTER(_Pair)).contents
-        ret[idx][0] = aggp.x
-        ret[idx][1] = aggp.y
-    return ret
 
 class DiffusionLimitedAggregate2D(object):
     """A two-dimensional Diffusion Limited Aggregate (DLA) structure

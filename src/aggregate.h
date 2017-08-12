@@ -42,7 +42,10 @@ struct aggregate_2d* aggregate_2d_alloc(void);
 
 void aggregate_2d_free(struct aggregate_2d* agg);
 
-int aggregate_2d_init(struct aggregate_2d* agg, double stickiness);
+int aggregate_2d_init(struct aggregate_2d* agg,
+                      double stickiness,
+                      enum lattice_type lt,
+                      enum attractor_type at);
 
 void aggregate_2d_free_fields(struct aggregate_2d* agg);
 

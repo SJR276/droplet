@@ -8,8 +8,8 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
     """Plots a two-dimensional Diffusion Limited Aggregate on a scatter
     chart with the specified properties.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     aggregate -- The aggregate to plot.
     prad -- Radius of particles.
     edgecolors -- Color profile of particle edges.
@@ -17,21 +17,20 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
     scalefactor -- Viewing scale factor, a floating-point multiple of
     the maximum (x,y) dimensions of the aggregate.
 
-    Returns:
-    --------
+    Returns
+    -------
     A tuple of the figure, axes handles for the plot.
     """
-    assert isinstance(aggregate, drp.DiffusionLimitedAggregate2D)
-    agg_x = aggregate.x_coords
-    agg_y = aggregate.y_coords
+    assert isinstance(aggregate, drp.Aggregate2D)
+    agg = aggregate.as_ndarray()
+    max_x = aggregate.max_x
+    max_y = aggregate.max_y
     color = aggregate.colors
     parea = np.pi*prad*prad
     fig, axes = plt.subplots()
-    max_x = np.max(agg_x)
-    max_y = np.max(agg_y)
     axes.set_xlim(-max_x*scalefactor, max_x*scalefactor)
     axes.set_ylim(-max_y*scalefactor, max_y*scalefactor)
-    axes.scatter(agg_x, agg_y, c=color, s=parea, edgecolors=edgecolors,
+    axes.scatter(agg[:, 0], agg[:, 1], c=color, s=parea, edgecolors=edgecolors,
                  alpha=alpha)
     fig.show()
     return fig, axes

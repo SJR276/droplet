@@ -11,7 +11,10 @@ void aggregate_2d_free(struct aggregate_2d* agg) {
     free(agg);
 }
 
-int aggregate_2d_init(struct aggregate_2d* agg, double stickiness) {
+int aggregate_2d_init(struct aggregate_2d* agg,
+    double stickiness,
+    enum lattice_type lt,
+    enum attractor_type at) {
     agg->_aggregate = (struct vector*)NULL;
     agg->_attractor = (struct vector*)NULL;
     agg->_rsteps = (struct vector*)NULL;
@@ -32,8 +35,8 @@ int aggregate_2d_init(struct aggregate_2d* agg, double stickiness) {
     agg->b_offset = 6U;
     agg->spawn_diam = agg->b_offset;
     agg->att_size = 1U;
-    agg->lt = SQUARE;
-    agg->at = POINT;
+    agg->lt = lt;
+    agg->at = at;
     srand(time(NULL));
     return 0;
     errorcleanup: // clean-up if memory allocation fails
@@ -99,6 +102,26 @@ void aggregate_2d_update_bp(const struct aggregate_2d* agg,
         else if (md >= 0.5 && md < 0.75) ++(curr->y);
         else --(curr->y);
     }
+    else if (agg->lt == TRIANGLE) {
+        if (md < 1.0/6.0) ++(curr->x);
+        else if (md >= 1.0/6.0 && md < 2.0/6.0) --(curr->x);
+        else if (md >= 2.0/6.0 && md < 3.0/6.0) {
+            ++(curr->x);
+            ++(curr->y);
+        }
+        else if (md >= 3.0/6.0 && md < 4.0/6.0) {
+            ++(curr->x);
+            --(curr->y);
+        }
+        else if (md >= 4.0/6.0 && md < 5.0/6.0) {
+            --(curr->x);
+            ++(curr->y);
+        }
+        else {
+            --(curr->x);
+            --(curr->y);
+        }
+    }
 }
 
 bool aggregate_2d_lattice_collision(const struct aggregate_2d* agg,
@@ -124,6 +147,8 @@ bool aggregate_2d_collision(struct aggregate_2d* agg,
         struct pair* aggp = (struct pair*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y) {
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
+            if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);
+            if (abs(prev->y) > agg->max_y) agg->max_y = abs(prev->y);
             if (agg->at == POINT) {
                 double rsqd = prev->x * prev->x + prev->y * prev->y;
                 if (rsqd > agg->max_r_sqd) {

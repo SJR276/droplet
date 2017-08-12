@@ -58,7 +58,7 @@ def simple_moving_average(data, period):
     return sma
 
 def steps_to_stick_test(nparticles):
-    aggregate = drp.DiffusionLimitedAggregate2D(lattice_type=drp.LatticeType.SQUARE)
+    aggregate = drp.Aggregate2D()
     aggregate.generate(nparticles)
     fig, axes = plt.subplots()
     prange = np.arange(nparticles)
@@ -68,7 +68,7 @@ def steps_to_stick_test(nparticles):
     fig.show()
 
 def boundary_collisions_test(nparticles):
-    aggregate = drp.DiffusionLimitedAggregate2D()
+    aggregate = drp.Aggregate2D()
     aggregate.generate(nparticles)
     fig, axes = plt.subplots()
     prange = np.arange(nparticles)
@@ -79,7 +79,7 @@ def boundary_collisions_test(nparticles):
 
 def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_sma=True,
                   sma_period=None):
-    aggregate = drp.DiffusionLimitedAggregate2D(lattice_type=drp.LatticeType.SQUARE)
+    aggregate = drp.Aggregate2D(lattice_type=drp.LatticeType.SQUARE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
     fig = plt.figure(figsize=(14, 7))
@@ -101,11 +101,12 @@ def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_s
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Boundary Collisions')
         else:
-            max_x = np.max(aggregate.x_coords)
-            max_y = np.max(aggregate.y_coords)
+            agg = aggregate.as_ndarray()
+            max_x = aggregate.max_x
+            max_y = aggregate.max_y
             sub.set_xlim(-max_x*scalefactor, max_x*scalefactor)
             sub.set_ylim(-max_y*scalefactor, max_y*scalefactor)
-            sub.scatter(aggregate.x_coords, aggregate.y_coords, c=aggregate.colors,
+            sub.scatter(agg[:, 0], agg[:, 1], c=aggregate.colors,
                         s=4*np.pi)
             sub.set_xlabel('x')
             sub.set_ylabel('y')
@@ -113,4 +114,4 @@ def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_s
     if save:
         fig.savefig(filename)
 
-combined_test(500, save=False, filename="../example_images/agg2dstats.png", sma_period=20)
+combined_test(1000, save=False, filename="../example_images/agg2dstats.png", sma_period=10)
