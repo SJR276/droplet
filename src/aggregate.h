@@ -1,5 +1,6 @@
 #ifndef AGGREGATE_H_
 #define AGGREGATE_H_
+
 #include "vector.h"
 #include <math.h>
 #include <time.h>

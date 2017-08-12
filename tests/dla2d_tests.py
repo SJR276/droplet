@@ -1,6 +1,5 @@
 import sys
 sys.path.append("../")
-import matplotlib.pyplot as plt
 import droplet as drp
 from droplet.plotting import plot_aggregate2d
 from droplet.realtime import RealTimeAggregate2D
@@ -18,7 +17,7 @@ def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
     point_agg = drp.Aggregate2D(stickiness=stickiness,
                                 lattice_type=lattice_type)
     point_agg.generate(nparticles)
-    plot_aggregate2d(point_agg)
+    plot_aggregate2d(point_agg, scalefactor=2.5)
 
 def line_attractor_test(nparticles, lattice_type, attparticles, stickiness=1.0):
     """Generate an aggregate of `nparticles` on a specified lattice with
@@ -30,9 +29,9 @@ def line_attractor_test(nparticles, lattice_type, attparticles, stickiness=1.0):
     lattice_type -- Type of lattice.
     stickiness -- Stickiness value of the aggregate [default 1.0].
     """
-    line_agg = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
-                                               lattice_type=lattice_type,
-                                               attractor_type=drp.AttractorType.LINE)
+    line_agg = drp.Aggregate2D(stickiness=stickiness,
+                               lattice_type=lattice_type,
+                               attractor_type=drp.AttractorType.LINE)
     line_agg.attractor_size = attparticles
     line_agg.generate(nparticles)
     plot_aggregate2d(line_agg)
@@ -47,9 +46,9 @@ def circle_attractor_test(nparticles, lattice_type, attradius, stickiness=1.0):
     lattice_type -- Type of lattice.
     stickiness -- Stickiness value of the aggregate [default 1.0].
     """
-    circle_agg = drp.DiffusionLimitedAggregate2D(stickiness=stickiness,
-                                                 lattice_type=lattice_type,
-                                                 attractor_type=drp.AttractorType.CIRCLE)
+    circle_agg = drp.Aggregate2D(stickiness=stickiness,
+                                 lattice_type=lattice_type,
+                                 attractor_type=drp.AttractorType.CIRCLE)
     circle_agg.attractor_size = attradius
     circle_agg.generate(nparticles)
     plot_aggregate2d(circle_agg)
@@ -81,5 +80,7 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
     return sim
 
 #point_attractor_test(2000, drp.LatticeType.TRIANGLE)
+#line_attractor_test(1000, drp.LatticeType.SQUARE, 100)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-real_time_test(1000, drp.LatticeType.TRIANGLE)
+real_time_test(500, drp.LatticeType.SQUARE, save=True,
+               filename="../example_images/agg2dtest.gif")
