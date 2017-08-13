@@ -60,10 +60,35 @@ class AttractorType(Enum):
     PLANE = 4
 
 class Aggregate2D(object):
-    """A two-dimensional DLA structure."""
+    """A two-dimensional Diffusion Limited Aggregate."""
     def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
                  attractor_type=AttractorType.POINT,
                  color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
+        """Initialises the aggregate with the specified properties.
+
+        Parameters
+        ----------
+        *stickiness* :: `float`, optional, default = 1.0
+
+            Probability of a particle sticking to the aggregate.
+
+        *lattice_type* :: `droplet.LatticeType`, optional, default = `SQUARE`
+
+            Type of lattice to generate aggregate upon.
+
+        *attractor_type* :: `droplet.AttractorType`, optional, default = `POINT`
+
+            Type of initial attractor geometry.
+
+        *color_profile* :: `droplet.colorprofiles.ColorProfile`, optional,
+        default = `BLUETHROUGHRED`
+
+            Color profile of aggregate structure.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector allocation failure occurs.
+        """
         self._this = _AggregateWrapper()
         self._handle = byref(self._this)
         retval = LIBDRP.aggregate_2d_init(self._handle, c_double(stickiness),
@@ -93,7 +118,9 @@ class Aggregate2D(object):
 
         Parameters
         ----------
-        value -- Value of the stickiness to set.
+        *value* :: `float`
+
+            Value of the stickiness to set.
 
         Exceptions
         ----------
@@ -118,7 +145,9 @@ class Aggregate2D(object):
 
         Parameters
         ----------
-        value -- Size of attractor to set.
+        *value* :: `int`
+
+            Size of attractor to set.
         """
         self._this.att_size = c_size_t(value)
     @property
@@ -180,6 +209,24 @@ class Aggregate2D(object):
         Value of the radius of smallest bounding circle.
         """
         return np.sqrt(self._this.max_r_sqd)
+    @property
+    def size(self):
+        """Returns the size of the aggregate in terms of the total number
+        of particles - including the initial attractor seed.
+
+        Returns
+        -------
+        Size of the aggregate.
+        """
+        return LIBDRP.vector_size(self._this._aggregate)
+    def fractal_dimension(self):
+        """Computes the fractal dimension of the aggregate.
+
+        Returns
+        -------
+        Dimension of the aggregate fractal.
+        """
+        return np.log(self.size)/np.log(self.radius)
     def as_ndarray(self):
         """Copies the internal (C) aggregate structure to a `np.ndarray`
         with `shape=(n, 2)` where `n` is the size of the aggregate.
@@ -196,14 +243,26 @@ class Aggregate2D(object):
             ret[idx][0] = aggp.x
             ret[idx][1] = aggp.y
         return ret
-    def generate(self, nparticles):
+    def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
         Parameters
         ----------
-        nparticles -- Size of aggregate to generate.
+        *nparticles* :: `int`
+
+            Size of aggregate to generate.
+
+        *display_progress* :: `bool`, optional, default = True
+
+            Print progress bar to terminal.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector reallocation failure occurs.
         """
-        retval = LIBDRP.aggregate_2d_generate(self._handle, c_size_t(nparticles))
+        retval = LIBDRP.aggregate_2d_generate(self._handle,
+                                              c_size_t(nparticles),
+                                              c_bool(display_progress))
         if retval == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_2d_generate.")
         # initialise colors for each particle in aggregate
@@ -214,7 +273,17 @@ class Aggregate2D(object):
 
         Parameters
         ----------
-        nparticles -- Size of aggregate to generate.
+        *nparticles* :: `int`
+
+            Size of aggregate to generate.
+
+        *display_progress* :: `bool`, optional, default = False
+
+            Print progress bar to terminal.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector reallocation failure occurs.
         """
         LIBDRP.aggregate_2d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_2d_collision.restype = c_bool
@@ -266,7 +335,7 @@ class Aggregate2D(object):
             pbar.finish()
 
 class Aggregate3D(object):
-    """A three-dimensional DLA structure."""
+    """A three-dimensional Diffusion Limited Aggregate."""
     def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
                  attractor_type=AttractorType.POINT,
                  color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
@@ -393,14 +462,17 @@ class Aggregate3D(object):
             ret[idx][1] = aggp.y
             ret[idx][2] = aggp.z
         return ret
-    def generate(self, nparticles):
+    def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
 
         Parameters
         ----------
         nparticles -- Size of aggregate to generate.
+        display_progress -- Print progress bar to terminal.        
         """
-        retval = LIBDRP.aggregate_3d_generate(self._handle, c_size_t(nparticles))
+        retval = LIBDRP.aggregate_3d_generate(self._handle,
+                                              c_size_t(nparticles),
+                                              c_bool(display_progress))
         if retval == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_3d_generate.")
         self.colors = np.zeros(nparticles+self._this.att_size, dtype=(float, 3))

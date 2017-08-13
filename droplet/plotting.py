@@ -5,17 +5,31 @@ import droplet as drp
 
 def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
                      scalefactor=1.5):
-    """Plots a two-dimensional Diffusion Limited Aggregate on a scatter
-    chart with the specified properties.
+    """Plots a two-dimensional Diffusion Limited Aggregate on a
+    scatter chart with the specified properties.
 
     Parameters
     ----------
-    aggregate -- The aggregate to plot.
-    prad -- Radius of particles.
-    edgecolors -- Color profile of particle edges.
-    alpha -- Alpha value for particle transparency.
-    scalefactor -- Viewing scale factor, a floating-point multiple of
-    the maximum (x,y) dimensions of the aggregate.
+    *aggregate* :: `droplet.Aggregate2D`
+
+        The aggregate to plot.
+
+    *prad* :: `float`, optional, default = 2
+
+        Visual radius of particles.
+
+    *edgecolors* :: `color` or sequence of `color`, optional, default = 'none'
+
+        Color profile of particle edges.
+
+    *alpha* :: `float`, optional, default = 1.0
+
+        Alpha value for particle opacity.
+
+    *scalefactor* :: `float`, optional, default = 1.5
+
+        Viewing scale factor, a floating-point multiple
+        of the maximum (x,y) dimensions of the aggregate.
 
     Returns
     -------
@@ -37,6 +51,36 @@ def plot_aggregate2d(aggregate, prad=2, edgecolors='none', alpha=1.0,
 
 def plot_aggregate3d(aggregate, prad=2, edgecolors='none', alpha=0.7,
                      scalefactor=1.5):
+    """Plots a three-dimensional Diffusion Limited Aggregate on a
+    scatter chart with the specified properties.
+
+    Parameters
+    ----------
+    *aggregate* :: `droplet.Aggregate3D`
+
+        The aggregate to plot.
+
+    *prad* :: `float`, optional, default = 2
+
+        Visual radius of particles.
+
+    *edgecolors* :: `color` or sequence of `color`, optional, default = 'none'
+
+        Color profile of particle edges.
+
+    *alpha* :: `float`, optional, default = 0.7
+
+        Alpha value for particle opacity.
+
+    *scalefactor* :: `float`, optional, default = 1.5
+
+        Viewing scale factor, a floating-point multiple
+        of the maximum (x,y) dimensions of the aggregate.
+
+    Returns
+    -------
+    A tuple of the figure, axes handles for the plot.
+    """
     assert isinstance(aggregate, drp.Aggregate3D)
     agg = aggregate.as_ndarray()
     max_x = aggregate.max_x
@@ -54,10 +98,45 @@ def plot_aggregate3d(aggregate, prad=2, edgecolors='none', alpha=0.7,
     fig.show()
     return fig, axes
 
-def plot_aggregate(aggregate, prad=2, edgecolors='none', alpha=1.0):
+def plot_aggregate(aggregate, prad=2, edgecolors='none', alpha=1.0,
+                   scalefactor=1.5):
+    """Plots a  Diffusion Limited Aggregate on a scatter
+    chart with the specified properties.
+
+    Parameters
+    ----------
+    *aggregate* :: `droplet.Aggregate2D` or `droplet.Aggregate.3D`
+
+        The aggregate to plot.
+
+    *prad* :: `float`, optional, default = 2
+
+        Visual radius of particles.
+
+    *edgecolors* :: `color` or sequence of `color`, optional, default = 'none'
+
+        Color profile of particle edges.
+
+    *alpha* :: `float`, optional, default = 1.0
+
+        Alpha value for particle opacity.
+
+    *scalefactor* :: `float`, optional, default = 1.5
+
+        Viewing scale factor, a floating-point multiple
+        of the maximum (x,y) dimensions of the aggregate.
+
+    Returns
+    -------
+    A tuple of the figure, axes handles for the plot.
+    """
     if isinstance(aggregate, drp.Aggregate2D):
         return plot_aggregate2d(aggregate, prad=prad,
-                                edgecolors=edgecolors, alpha=alpha)
+                                edgecolors=edgecolors,
+                                alpha=alpha,
+                                scalefactor=scalefactor)
     elif isinstance(aggregate, drp.Aggregate3D):
         return plot_aggregate3d(aggregate, prad=prad,
-                                edgecolors=edgecolors, alpha=alpha)
+                                edgecolors=edgecolors,
+                                alpha=alpha,
+                                scalefactor=scalefactor)

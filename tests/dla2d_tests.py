@@ -18,6 +18,7 @@ def point_attractor_test(nparticles, lattice_type, stickiness=1.0):
                                 lattice_type=lattice_type)
     point_agg.generate(nparticles)
     plot_aggregate2d(point_agg, scalefactor=2.5)
+    #print("Fractal dimension = {}".format(point_agg.fractal_dimension()))
 
 def line_attractor_test(nparticles, lattice_type, attparticles, stickiness=1.0):
     """Generate an aggregate of `nparticles` on a specified lattice with

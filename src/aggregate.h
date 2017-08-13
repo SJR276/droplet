@@ -3,6 +3,7 @@
 
 #include "vector.h"
 #include <math.h>
+#include <stdio.h>
 #include <time.h>
 
 enum lattice_type {
@@ -30,20 +31,20 @@ struct triplet {
 };
 
 struct aggregate {
-    struct vector* _aggregate;
-    struct vector* _attractor;
+    struct vector* _aggregate; /**< Aggregate particle co-ordinates. */
+    struct vector* _attractor; /**< Attractor particle co-ordinates. */
     struct vector* _bcolls; /**< Lattice boundary collisions beffore stick for each particle. */
     struct vector* _rsteps; /**< Required steps until stick for each particle. */
-    double stickiness;
-    size_t max_x;
-    size_t max_y;
-    size_t max_z;
+    double stickiness; /**< Probability of a particle sticking to the aggregate. */
+    size_t max_x; /**< Maximum extent of aggregate in x-direction. */
+    size_t max_y; /**< Maximum extent of aggregate in y-direction. */
+    size_t max_z; /**< Maximum extent of aggregate in z-direction. */
     size_t max_r_sqd; /**< Current maximum radius squared of aggregate. */
     size_t b_offset; /**< Boundary offset for spawning region. */
-    size_t spawn_diam;
+    size_t spawn_diam; /**< Spawning region diameter. */
     size_t att_size; /**< Number of particles in attractor. */
-    enum lattice_type lt;
-    enum attractor_type at;
+    enum lattice_type lt; /**< Type of lattice to generate aggregate upon. */
+    enum attractor_type at; /**< Type of initial attractor geometry. */
 };
 
 struct aggregate* aggregate_alloc(void);
@@ -90,7 +91,7 @@ bool aggregate_3d_collision(struct aggregate* agg,
                             struct triplet* curr,
                             struct triplet* prev);
 
-int aggregate_2d_generate(struct aggregate* agg, size_t n);
-int aggregate_3d_generate(struct aggregate* agg, size_t n);
+int aggregate_2d_generate(struct aggregate* agg, size_t n, bool disp_prog);
+int aggregate_3d_generate(struct aggregate* agg, size_t n, bool disp_prog);
 
 #endif // !AGGREGATE_H_

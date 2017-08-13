@@ -50,12 +50,12 @@ int aggregate_2d_init(struct aggregate* agg,
     agg->max_y = 0U;
     agg->max_z = 0U;
     agg->max_r_sqd = agg->max_x*agg->max_x + agg->max_y*agg->max_y;
-    agg->b_offset = 6U;
+    agg->b_offset = 6U; // small offset from spawning region to lattice boundary
     agg->spawn_diam = agg->b_offset;
     agg->att_size = 1U;
     agg->lt = lt;
     agg->at = at;
-    srand(time(NULL));
+    srand(time(NULL)); // seed PRNG
     return 0;
     errorcleanup: // clean-up if memory allocation fails
         aggregate_free_fields(agg);
@@ -63,7 +63,7 @@ int aggregate_2d_init(struct aggregate* agg,
 }
 
 int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
-    if (agg->at == POINT) {
+    if (agg->at == POINT) { // set origin point
         struct pair origin;
         origin.x = 0; origin.y = 0;
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
@@ -73,7 +73,7 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
         vector_push_back(agg->_attractor, &origin, sizeof origin);
         vector_push_back(agg->_aggregate, &origin, sizeof origin);
     }
-    else if (agg->at == LINE) {
+    else if (agg->at == LINE) { // set (x=[-att_size/2, att_size/2], y=0)
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
         const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
@@ -86,7 +86,7 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
             vector_push_back(agg->_aggregate, &attp, sizeof attp);
         }
     }
-    else if (agg->at == CIRCLE) {
+    else if (agg->at == CIRCLE) { // set circle with r = att_size
         const size_t attparticles = (size_t)(2.0*M_PI*agg->att_size) + 1U;
         const int ec1 = vector_reserve(agg->_attractor, attparticles);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
@@ -106,13 +106,13 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
 
 void aggregate_2d_spawn_bp(const struct aggregate* agg,
                            struct pair* curr) {
-    const double ppr = prand(); // generate random number in [0, 1]
+    const double ppr = prand();
     if (agg->at == POINT) {
-        if (ppr < 0.5) {
+        if (ppr < 0.5) { // positive/negative y-line of boundary
             curr->x = (int)agg->spawn_diam*(prand() - 0.5);
             curr->y = (ppr < 0.25) ? (int)(agg->spawn_diam*0.5) : -(int)(agg->spawn_diam*0.5);
         }
-        else {
+        else { // positive/negative x-line of boundary
             curr->x = (ppr < 0.75) ? (int)(agg->spawn_diam*0.5) : -(int)(agg->spawn_diam*0.5);
             curr->y = (int)agg->spawn_diam*(prand() - 0.5);
         }
@@ -157,7 +157,7 @@ void aggregate_2d_update_bp(const struct aggregate* agg,
 bool aggregate_2d_lattice_collision(const struct aggregate* agg,
                                     struct pair* curr,
                                     const struct pair* prev) {
-    const int epsilon = 2;
+    const int epsilon = 2; // small elastic boundary correction
     if (agg->at == POINT || agg->at == CIRCLE) {
         const int bnd_absmax = (int)(agg->spawn_diam*0.5 + epsilon);
         if (abs(curr->x) > bnd_absmax || abs(curr->y) > bnd_absmax) {
@@ -190,6 +190,7 @@ bool aggregate_2d_collision(struct aggregate* agg,
                 agg->max_y = abs(prev->y);
                 expand_spawn_line = true;
             }
+            // expand spawning region if necessary
             if (agg->at == POINT) {
                 double rsqd = prev->x * prev->x + prev->y * prev->y;
                 if (rsqd > agg->max_r_sqd) {
@@ -197,7 +198,7 @@ bool aggregate_2d_collision(struct aggregate* agg,
                     agg->spawn_diam = 2*(int)(sqrt(rsqd)) + agg->b_offset;
                 }
             }
-            if (agg->at == LINE && expand_spawn_line)
+            else if (agg->at == LINE && expand_spawn_line)
                 agg->spawn_diam = prev->y + agg->b_offset;
             return true;
         }
@@ -205,7 +206,7 @@ bool aggregate_2d_collision(struct aggregate* agg,
     return false;
 }
 
-int aggregate_2d_generate(struct aggregate* agg, size_t n) {
+int aggregate_2d_generate(struct aggregate* agg, size_t n, bool disp_prog) {
     if (aggregate_reserve(agg, n) == -1 ||
         aggregate_2d_init_attractor(agg, n) == -1) return -1;
     struct pair curr;
@@ -230,6 +231,10 @@ int aggregate_2d_generate(struct aggregate* agg, size_t n) {
             steps_to_stick = 0U;
             bcolls = 0U;
             ++count;
+            if (disp_prog) {
+                printf("\rProgress: %d%%", (int)(100*(double)count/(double)n));
+                fflush(stdout);
+            }
             has_next_spawned = false;
         }
     }
@@ -274,7 +279,7 @@ int aggregate_3d_init(struct aggregate* agg,
 }
 
 int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
-    if (agg->at == POINT) {
+    if (agg->at == POINT) { // set origin point
         struct triplet origin;
         origin.x = 0; origin.y = 0; origin.z = 0;
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
@@ -284,7 +289,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
         vector_push_back(agg->_attractor, &origin, sizeof origin);
         vector_push_back(agg->_aggregate, &origin, sizeof origin);
     }
-    else if (agg->at == LINE) {
+    else if (agg->at == LINE) { // set (x=[-att_size/2, att_size/2], y=0, z=0)
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
         const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
@@ -297,6 +302,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
             vector_push_back(agg->_aggregate, &attp, sizeof attp);
         }
     }
+    // set (x=[-att_size/2, att_size/2], y=[-att_size/2, att_size/2], z=0)
     else if (agg->at == PLANE) {
         const size_t attparticles = agg->att_size*agg->att_size;
         const int ec1 = vector_reserve(agg->_attractor, attparticles);
@@ -314,7 +320,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
             }
         }
     }
-    else if (agg->at == CIRCLE) {
+    else if (agg->at == CIRCLE) { // set circle with r = att_size
         const size_t attparticles = (size_t)(2.0*M_PI*agg->att_size) + 1U;
         const int ec1 = vector_reserve(agg->_attractor, attparticles);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
@@ -330,7 +336,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
             vector_push_back(agg->_aggregate, &attp, sizeof attp);
         }
     }
-    else if (agg->at == SPHERE) {
+    else if (agg->at == SPHERE) { // set sphere with r = att_size
         const size_t attparticles = (size_t)((2*M_PI*agg->att_size + 1)*(M_PI*agg->att_size + 1));
         const int ec1 = vector_reserve(agg->_attractor, attparticles);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
@@ -465,7 +471,12 @@ bool aggregate_3d_collision(struct aggregate* agg,
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
             if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);
             if (abs(prev->y) > agg->max_y) agg->max_y = abs(prev->y);
-            if (abs(prev->z) > agg->max_z) agg->max_z = abs(prev->z);
+            bool expand_spawn_plane = false;
+            if (abs(prev->z) > agg->max_z) { 
+                agg->max_z = abs(prev->z);
+                expand_spawn_plane = true;
+            }
+            // expand spawning region if necessary
             if (agg->at == POINT) {
                 double rsqd = prev->x*prev->x + prev->y*prev->y + prev->z*prev->z;
                 if (rsqd > agg->max_r_sqd) {
@@ -473,13 +484,15 @@ bool aggregate_3d_collision(struct aggregate* agg,
                     agg->spawn_diam = 2*(int)(sqrt(rsqd)) + agg->b_offset;
                 }
             }
+            else if (agg->at == PLANE && expand_spawn_plane)
+                agg->spawn_diam = prev->z + agg->b_offset;
             return true;
         }
     }
     return false;
 }
 
-int aggregate_3d_generate(struct aggregate* agg, size_t n) {
+int aggregate_3d_generate(struct aggregate* agg, size_t n, bool disp_prog) {
     if (aggregate_reserve(agg, n) == -1 ||
         aggregate_3d_init_attractor(agg, n) == -1) return -1;
     struct triplet curr;
@@ -505,6 +518,10 @@ int aggregate_3d_generate(struct aggregate* agg, size_t n) {
             steps_to_stick = 0U;
             bcolls = 0U;
             ++count;
+            if (disp_prog) {
+                printf("\rProgress: %d%%", (int)(100*(double)count/(double)n));
+                fflush(stdout);
+            }
             has_next_spawned = false;
         }
     }
