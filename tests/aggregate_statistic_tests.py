@@ -87,19 +87,23 @@ def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_s
     for row, col, plotno in figdims:
         sub = fig.add_subplot(row, col, plotno)
         if plotno == 1:
-            sub.plot(prange, aggregate.required_steps)
+            sub.plot(prange, aggregate.required_steps, 'b', label=r"Required steps")
             if plot_sma:
                 rqd_steps_ma = simple_moving_average(aggregate.required_steps, sma_period)
-                sub.plot(rqd_steps_ma[:, 0], rqd_steps_ma[:, 1], 'g')
+                sub.plot(rqd_steps_ma[:, 0], rqd_steps_ma[:, 1], 'r',
+                         label=r"{} particle SMA".format(sma_period))
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Lattice Steps to Stick')
+            sub.legend()
         elif plotno == 3:
-            sub.plot(prange, aggregate.boundary_collisions, 'r')
+            sub.plot(prange, aggregate.boundary_collisions, 'g', label=r"Boundary collisions")
             if plot_sma:
                 bcoll_ma = simple_moving_average(aggregate.boundary_collisions, sma_period)
-                sub.plot(bcoll_ma[:, 0], bcoll_ma[:, 1], 'g')
+                sub.plot(bcoll_ma[:, 0], bcoll_ma[:, 1], 'r',
+                         label=r"{} particle SMA".format(sma_period))
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Boundary Collisions')
+            sub.legend()
         else:
             agg = aggregate.as_ndarray()
             max_x = aggregate.max_x
@@ -114,4 +118,4 @@ def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_s
     if save:
         fig.savefig(filename)
 
-combined_test(1000, save=False, filename="../example_images/agg2dstats.png", sma_period=10)
+combined_test(1000, save=True, filename="../example_images/agg2dstats.png", sma_period=10)

@@ -11,12 +11,14 @@ LIBDROPLETNAME = "libdroplet.so"
 LIBDROPLETPATH = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + LIBDROPLETNAME
 LIBDRP = CDLL(LIBDROPLETPATH)
 
-class _Pair(Structure):
+_C_SIZE_T_PTR_T = POINTER(c_size_t)
+
+class _IntPair(Structure):
     _fields_ = [
         ("x", c_int),
         ("y", c_int)]
 
-class _Triplet(Structure):
+class _IntTriplet(Structure):
     _fields_ = [
         ("x", c_int),
         ("y", c_int),
@@ -164,7 +166,7 @@ class Aggregate2D(object):
         ret = np.zeros(aggsize, dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._rsteps, c_size_t(idx))
-            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+            ret[idx] = cast(addr, _C_SIZE_T_PTR_T).contents.value
         return ret
     @property
     def boundary_collisions(self):
@@ -179,7 +181,7 @@ class Aggregate2D(object):
         ret = np.zeros(aggsize, dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._bcolls, c_size_t(idx))
-            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+            ret[idx] = cast(addr, _C_SIZE_T_PTR_T).contents.value
         return ret
     @property
     def max_x(self):
@@ -235,11 +237,12 @@ class Aggregate2D(object):
         -------
         An instance of `np.ndarray` containing aggregate particle co-ordinates.
         """
+        _IntPair_ptr_t = POINTER(_IntPair)
         aggsize = LIBDRP.vector_size(self._this._aggregate)
         ret = np.zeros((aggsize, 2), dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
-            aggp = cast(addr, POINTER(_Pair)).contents
+            aggp = cast(addr, _IntPair_ptr_t).contents
             ret[idx][0] = aggp.x
             ret[idx][1] = aggp.y
         return ret
@@ -287,6 +290,7 @@ class Aggregate2D(object):
         """
         LIBDRP.aggregate_2d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_2d_collision.restype = c_bool
+        _IntPair_ptr_t = POINTER(_IntPair)
         rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
         if rv_res == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_2d_reserve.")
@@ -298,8 +302,8 @@ class Aggregate2D(object):
         # initialise colors for each particle in aggregate
         self.colors = np.zeros(2*(nparticles+self._this.att_size), dtype=(float, 3))
         clrpr.blue_through_red(self.colors)
-        curr = _Pair()
-        prev = _Pair()
+        curr = _IntPair()
+        prev = _IntPair()
         has_next_spawned = False
         rsteps = c_size_t(0) # required steps to stick
         bcolls = c_size_t(0) # lattice boundary collisions before stick
@@ -319,7 +323,7 @@ class Aggregate2D(object):
             if LIBDRP.aggregate_2d_collision(self._handle, byref(curr), byref(prev)):
                 addr_rec = LIBDRP.vector_at(self._this._aggregate,
                                             c_size_t(count + self._this.att_size))
-                aggp_rec = cast(addr_rec, POINTER(_Pair)).contents
+                aggp_rec = cast(addr_rec, _IntPair_ptr_t).contents
                 self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
                 self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
                 LIBDRP.vector_push_back(self._this._rsteps, byref(rsteps), sizeof(c_size_t))
@@ -339,6 +343,31 @@ class Aggregate3D(object):
     def __init__(self, stickiness=1.0, lattice_type=LatticeType.SQUARE,
                  attractor_type=AttractorType.POINT,
                  color_profile=clrpr.ColorProfile.BLUETHROUGHRED):
+        """Initialises the aggregate with the specified properties.
+
+        Parameters
+        ----------
+        *stickiness* :: `float`, optional, default = 1.0
+
+            Probability of a particle sticking to the aggregate.
+
+        *lattice_type* :: `droplet.LatticeType`, optional, default = `SQUARE`
+
+            Type of lattice to generate aggregate upon.
+
+        *attractor_type* :: `droplet.AttractorType`, optional, default = `POINT`
+
+            Type of initial attractor geometry.
+
+        *color_profile* :: `droplet.colorprofiles.ColorProfile`, optional,
+        default = `BLUETHROUGHRED`
+
+            Color profile of aggregate structure.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector allocation failure occurs.
+        """
         self._this = _AggregateWrapper()
         self._handle = byref(self._this)
         retval = LIBDRP.aggregate_3d_init(self._handle, c_double(stickiness),
@@ -368,7 +397,9 @@ class Aggregate3D(object):
 
         Parameters
         ----------
-        value -- Value of the stickiness to set.
+        *value* :: `float`
+
+            Value of the stickiness to set.
 
         Exceptions
         ----------
@@ -377,6 +408,26 @@ class Aggregate3D(object):
         if value < 0.0 or value > 1.0:
             raise ValueError("Stickiness of aggregate must be in [0, 1].")
         self._this.stickiness = c_double(value)
+    @property
+    def attractor_size(self):
+        """Returns the size of the attractor seed. The physical interpretation of
+        this value depends upon the attractor geometry type set.
+
+        Returns
+        -------
+        Size of the attractor.
+        """
+    @attractor_size.setter
+    def attractor_size(self, value):
+        """Sets the size of the attractor seed.
+
+        Parameters
+        ----------
+        *value* :: `int`
+
+            Size of attractor to set.
+        """
+        self._this.att_size = c_size_t(value)
     @property
     def required_steps(self):
         """Returns the number of lattice steps required for each particle to stick
@@ -391,7 +442,7 @@ class Aggregate3D(object):
         ret = np.zeros(aggsize, dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._rsteps, c_size_t(idx))
-            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+            ret[idx] = cast(addr, _C_SIZE_T_PTR_T).contents.value
         return ret
     @property
     def boundary_collisions(self):
@@ -406,7 +457,7 @@ class Aggregate3D(object):
         ret = np.zeros(aggsize, dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._bcolls, c_size_t(idx))
-            ret[idx] = cast(addr, POINTER(c_size_t)).contents.value
+            ret[idx] = cast(addr, _C_SIZE_T_PTR_T).contents.value
         return ret
     @property
     def max_x(self):
@@ -445,6 +496,24 @@ class Aggregate3D(object):
         Value of the radius of smallest bounding sphere.
         """
         return np.sqrt(self._this.max_r_sqd)
+    @property
+    def size(self):
+        """Returns the size of the aggregate in terms of the total number
+        of particles - including the initial attractor seed.
+
+        Returns
+        -------
+        Size of the aggregate.
+        """
+        return LIBDRP.vector_size(self._this._aggregate)
+    def fractal_dimension(self):
+        """Computes the fractal dimension of the aggregate.
+
+        Returns
+        -------
+        Dimension of the aggregate fractal.
+        """
+        return np.log(self.size)/np.log(self.radius)
     def as_ndarray(self):
         """Copies the internal (C) aggregate structure to a `np.ndarray`
         with `shape=(n, 3)` where `n` is the size of the aggregate.
@@ -453,11 +522,12 @@ class Aggregate3D(object):
         -------
         An instance of `np.ndarray` containing aggregate particle co-ordinates.
         """
+        _IntTriplet_ptr_t = POINTER(_IntTriplet)
         aggsize = LIBDRP.vector_size(self._this._aggregate)
         ret = np.zeros((aggsize, 3), dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
-            aggp = cast(addr, POINTER(_Triplet)).contents
+            aggp = cast(addr, _IntTriplet_ptr_t).contents
             ret[idx][0] = aggp.x
             ret[idx][1] = aggp.y
             ret[idx][2] = aggp.z
@@ -467,14 +537,24 @@ class Aggregate3D(object):
 
         Parameters
         ----------
-        nparticles -- Size of aggregate to generate.
-        display_progress -- Print progress bar to terminal.        
+        *nparticles* :: `int`
+
+            Size of aggregate to generate.
+
+        *display_progress* :: `bool`, optional, default = True
+
+            Print progress bar to terminal.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector reallocation failure occurs.
         """
         retval = LIBDRP.aggregate_3d_generate(self._handle,
                                               c_size_t(nparticles),
                                               c_bool(display_progress))
         if retval == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_3d_generate.")
+        # initialise colors for each particle in aggregate
         self.colors = np.zeros(nparticles+self._this.att_size, dtype=(float, 3))
         clrpr.blue_through_red(self.colors)
     def generate_stream(self, nparticles, display_progress=False):
@@ -482,10 +562,21 @@ class Aggregate3D(object):
 
         Parameters
         ----------
-        nparticles -- Size of aggregate to generate.
+        *nparticles* :: `int`
+
+            Size of aggregate to generate.
+
+        *display_progress* :: `bool`, optional, default = False
+
+            Print progress bar to terminal.
+
+        Exceptions
+        ----------
+        Raises `MemoryError` if a vector reallocation failure occurs.
         """
         LIBDRP.aggregate_3d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_3d_collision.restype = c_bool
+        _IntTriplet_ptr_t = POINTER(_IntTriplet)
         rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
         if rv_res == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_reserve.")
@@ -494,10 +585,11 @@ class Aggregate3D(object):
             raise MemoryError("""vector reallocation failure occurred in
             aggregate_3d_init_attractor.""")
         self.__aggregate = np.zeros((nparticles + self._this.att_size, 3), dtype=int)
+        # initialise colors for each particle in aggregate
         self.colors = np.zeros(2*(nparticles+self._this.att_size), dtype=(float, 3))
         clrpr.blue_through_red(self.colors)
-        curr = _Triplet()
-        prev = _Triplet()
+        curr = _IntTriplet()
+        prev = _IntTriplet()
         has_next_spawned = False
         rsteps = c_size_t(0)
         bcolls = c_size_t(0)
@@ -518,7 +610,7 @@ class Aggregate3D(object):
             if LIBDRP.aggregate_3d_collision(self._handle, byref(curr), byref(prev)):
                 addr_rec = LIBDRP.vector_at(self._this._aggregate,
                                             c_size_t(count + self._this.att_size))
-                aggp_rec = cast(addr_rec, POINTER(_Triplet)).contents
+                aggp_rec = cast(addr_rec, _IntTriplet_ptr_t).contents
                 self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
                 self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
                 self.__aggregate[count+self._this.att_size][2] = aggp_rec.z

@@ -19,12 +19,12 @@ enum attractor_type {
     PLANE
 };
 
-struct pair {
+struct int_pair {
     int x;
     int y;
 };
 
-struct triplet {
+struct int_triplet {
     int x;
     int y;
     int z;
@@ -68,28 +68,28 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n);
 int aggregate_3d_init_attractor(struct aggregate* agg, size_t n);
 
 void aggregate_2d_spawn_bp(const struct aggregate* agg,
-                           struct pair* curr);
+                           struct int_pair* curr);
 void aggregate_3d_spawn_bp(const struct aggregate* agg,
-                           struct triplet* curr);
+                           struct int_triplet* curr);
 
 void aggregate_2d_update_bp(const struct aggregate* agg, 
-                            struct pair* curr);
+                            struct int_pair* curr);
 void aggregate_3d_update_bp(const struct aggregate* agg,
-                            struct triplet* curr);
+                            struct int_triplet* curr);
 
 bool aggregate_2d_lattice_collision(const struct aggregate* agg,
-                                    struct pair* curr,
-                                    const struct pair* prev);
+                                    struct int_pair* curr,
+                                    const struct int_pair* prev);
 bool aggregate_3d_lattice_collision(const struct aggregate* agg,
-                                    struct triplet* curr,
-                                    const struct triplet* prev);
+                                    struct int_triplet* curr,
+                                    const struct int_triplet* prev);
 
 bool aggregate_2d_collision(struct aggregate* agg,
-                            struct pair* curr,
-                            struct pair* prev);
+                            struct int_pair* curr,
+                            struct int_pair* prev);
 bool aggregate_3d_collision(struct aggregate* agg,
-                            struct triplet* curr,
-                            struct triplet* prev);
+                            struct int_triplet* curr,
+                            struct int_triplet* prev);
 
 int aggregate_2d_generate(struct aggregate* agg, size_t n, bool disp_prog);
 int aggregate_3d_generate(struct aggregate* agg, size_t n, bool disp_prog);

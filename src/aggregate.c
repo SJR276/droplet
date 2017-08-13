@@ -37,9 +37,9 @@ int aggregate_2d_init(struct aggregate* agg,
     agg->_rsteps = (struct vector*)NULL;
     agg->_bcolls = (struct vector*)NULL;
     // try to allocate vectors
-    agg->_aggregate = vector_alloc(sizeof(struct pair));
+    agg->_aggregate = vector_alloc(sizeof(struct int_pair));
     if (!(agg->_aggregate)) goto errorcleanup;
-    agg->_attractor = vector_alloc(sizeof(struct pair));
+    agg->_attractor = vector_alloc(sizeof(struct int_pair));
     if (!(agg->_attractor)) goto errorcleanup;
     agg->_rsteps = vector_alloc(sizeof(size_t));
     if (!(agg->_rsteps)) goto errorcleanup;
@@ -64,7 +64,7 @@ int aggregate_2d_init(struct aggregate* agg,
 
 int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
     if (agg->at == POINT) { // set origin point
-        struct pair origin;
+        struct int_pair origin;
         origin.x = 0; origin.y = 0;
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
@@ -79,7 +79,7 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
         const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         for (int i = 0; i < (int)agg->att_size; ++i) {
-            struct pair attp;
+            struct int_pair attp;
             attp.x = i - (int)(0.5*agg->att_size);
             attp.y = 0;
             vector_push_back(agg->_attractor, &attp, sizeof attp);
@@ -94,7 +94,7 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         const double step = 1.0/agg->att_size;
         for (double theta = 0.0; theta < 2.0*M_PI + step; theta += step) {
-            struct pair attp;
+            struct int_pair attp;
             attp.x = (int)(agg->att_size*cos(theta));
             attp.y = (int)(agg->att_size*sin(theta));
             vector_push_back(agg->_attractor, &attp, sizeof attp);
@@ -105,7 +105,7 @@ int aggregate_2d_init_attractor(struct aggregate* agg, size_t n) {
 }
 
 void aggregate_2d_spawn_bp(const struct aggregate* agg,
-                           struct pair* curr) {
+                           struct int_pair* curr) {
     const double ppr = prand();
     if (agg->at == POINT) {
         if (ppr < 0.5) { // positive/negative y-line of boundary
@@ -124,7 +124,7 @@ void aggregate_2d_spawn_bp(const struct aggregate* agg,
 }
 
 void aggregate_2d_update_bp(const struct aggregate* agg,
-                            struct pair* curr) {
+                            struct int_pair* curr) {
     const double md = prand();
     if (agg->lt == SQUARE) {
         if (md < 0.25) ++(curr->x);
@@ -155,8 +155,8 @@ void aggregate_2d_update_bp(const struct aggregate* agg,
 }
 
 bool aggregate_2d_lattice_collision(const struct aggregate* agg,
-                                    struct pair* curr,
-                                    const struct pair* prev) {
+                                    struct int_pair* curr,
+                                    const struct int_pair* prev) {
     const int epsilon = 2; // small elastic boundary correction
     if (agg->at == POINT || agg->at == CIRCLE) {
         const int bnd_absmax = (int)(agg->spawn_diam*0.5 + epsilon);
@@ -177,11 +177,11 @@ bool aggregate_2d_lattice_collision(const struct aggregate* agg,
 }
 
 bool aggregate_2d_collision(struct aggregate* agg,
-                            struct pair* curr,
-                            struct pair* prev) {
+                            struct int_pair* curr,
+                            struct int_pair* prev) {
     if (prand() > agg->stickiness) return false;
     for (size_t i = 0U; i < vector_size(agg->_aggregate); ++i) {
-        const struct pair* aggp = (struct pair*)vector_at(agg->_aggregate, i);
+        const struct int_pair* aggp = (struct int_pair*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y) {
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
             if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);
@@ -209,8 +209,8 @@ bool aggregate_2d_collision(struct aggregate* agg,
 int aggregate_2d_generate(struct aggregate* agg, size_t n, bool disp_prog) {
     if (aggregate_reserve(agg, n) == -1 ||
         aggregate_2d_init_attractor(agg, n) == -1) return -1;
-    struct pair curr;
-    struct pair prev;
+    struct int_pair curr;
+    struct int_pair prev;
     size_t steps_to_stick = 0U;
     size_t bcolls = 0U;
     size_t count = 0U;
@@ -252,9 +252,9 @@ int aggregate_3d_init(struct aggregate* agg,
     agg->_rsteps = (struct vector*)NULL;
     agg->_bcolls = (struct vector*)NULL;
     // try to allocate vectors
-    agg->_aggregate = vector_alloc(sizeof(struct triplet));
+    agg->_aggregate = vector_alloc(sizeof(struct int_triplet));
     if (!(agg->_aggregate)) goto errorcleanup;
-    agg->_attractor = vector_alloc(sizeof(struct triplet));
+    agg->_attractor = vector_alloc(sizeof(struct int_triplet));
     if (!(agg->_attractor)) goto errorcleanup;
     agg->_rsteps = vector_alloc(sizeof(size_t));
     if (!(agg->_rsteps)) goto errorcleanup;
@@ -280,7 +280,7 @@ int aggregate_3d_init(struct aggregate* agg,
 
 int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
     if (agg->at == POINT) { // set origin point
-        struct triplet origin;
+        struct int_triplet origin;
         origin.x = 0; origin.y = 0; origin.z = 0;
         const int ec1 = vector_reserve(agg->_attractor, agg->att_size);
         if (ec1 == VECTOR_REALLOC_FAILURE) return -1;
@@ -295,7 +295,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
         const int ec2 = vector_reserve(agg->_aggregate, n + agg->att_size);
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         for (int i = 0; i < (int)agg->att_size; ++i) {
-            struct triplet attp;
+            struct int_triplet attp;
             attp.x = i - (int)(0.5*agg->att_size);
             attp.y = 0; attp.z = 0;
             vector_push_back(agg->_attractor, &attp, sizeof attp);
@@ -311,7 +311,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         for (int i = 0; i < (int)agg->att_size; ++i) {
             for (int j = 0; j < (int)agg->att_size; ++j) {
-                struct triplet attp;
+                struct int_triplet attp;
                 attp.x = i - (int)(0.5*agg->att_size);
                 attp.y = j - (int)(0.5*agg->att_size);
                 attp.z = 0;
@@ -328,7 +328,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
         if (ec2 == VECTOR_REALLOC_FAILURE) return -1;
         const double step = 1.0/agg->att_size;
         for (double theta = 0.0; theta < 2.0*M_PI + step; theta += step) {
-            struct triplet attp;
+            struct int_triplet attp;
             attp.x = (int)(agg->att_size*cos(theta));
             attp.y = (int)(agg->att_size*sin(theta));
             attp.z = 0;
@@ -345,7 +345,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
         const double step = 1.0/agg->att_size;
         for (double phi = 0.0; phi < 2.0*M_PI + step; phi += step) { // azimuthal
             for (double theta = -0.5*M_PI; theta < 0.5*M_PI + step; theta += step) { // polar
-                struct triplet attp;
+                struct int_triplet attp;
                 attp.x = (int)(agg->att_size*sin(theta)*cos(phi));
                 attp.y = (int)(agg->att_size*sin(theta)*sin(phi));
                 attp.z = (int)(agg->att_size*cos(theta));
@@ -358,7 +358,7 @@ int aggregate_3d_init_attractor(struct aggregate* agg, size_t n) {
 }
 
 void aggregate_3d_spawn_bp(const struct aggregate* agg,
-    struct triplet* curr) {
+    struct int_triplet* curr) {
     const double ppr = prand();
     if (agg->at == POINT) {
         if (ppr < 1.0/3.0) { // positive/negative z-plane of boundary
@@ -390,7 +390,7 @@ void aggregate_3d_spawn_bp(const struct aggregate* agg,
 }
 
 void aggregate_3d_update_bp(const struct aggregate* agg,
-    struct triplet* curr) {
+    struct int_triplet* curr) {
     const double md = prand();
     if (agg->lt == SQUARE) {
         if (md < 1.0/6.0) ++(curr->x);
@@ -425,8 +425,8 @@ void aggregate_3d_update_bp(const struct aggregate* agg,
 }
 
 bool aggregate_3d_lattice_collision(const struct aggregate* agg,
-    struct triplet* curr,
-    const struct triplet* prev) {
+    struct int_triplet* curr,
+    const struct int_triplet* prev) {
     const int epsilon = 2;
     if (agg->at == POINT || agg->at == CIRCLE || agg->at == SPHERE) {
         const int bnd_absmax = (int)(agg->spawn_diam*0.5) + epsilon;
@@ -462,11 +462,11 @@ bool aggregate_3d_lattice_collision(const struct aggregate* agg,
 }
 
 bool aggregate_3d_collision(struct aggregate* agg,
-    struct triplet* curr,
-    struct triplet* prev) {
+    struct int_triplet* curr,
+    struct int_triplet* prev) {
     if (prand() > agg->stickiness) return false;
     for (size_t i = 0U; i < vector_size(agg->_aggregate); ++i) {
-        const struct triplet* aggp = (struct triplet*)vector_at(agg->_aggregate, i);
+        const struct int_triplet* aggp = (struct int_triplet*)vector_at(agg->_aggregate, i);
         if (curr->x == aggp->x && curr->y == aggp->y && curr->z == aggp->z) {
             vector_push_back(agg->_aggregate, prev, sizeof *prev);
             if (abs(prev->x) > agg->max_x) agg->max_x = abs(prev->x);
@@ -495,8 +495,8 @@ bool aggregate_3d_collision(struct aggregate* agg,
 int aggregate_3d_generate(struct aggregate* agg, size_t n, bool disp_prog) {
     if (aggregate_reserve(agg, n) == -1 ||
         aggregate_3d_init_attractor(agg, n) == -1) return -1;
-    struct triplet curr;
-    struct triplet prev;
+    struct int_triplet curr;
+    struct int_triplet prev;
     size_t steps_to_stick = 0U;
     size_t bcolls = 0U;
     size_t count = 0U;
