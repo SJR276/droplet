@@ -64,7 +64,7 @@ class RealTimeAggregate2D(object):
             area = np.pi*(self.prad*self.prad)
             self.scat = self.ax.scatter(agg[:count, 0], agg[:count, 1],
                                         c=col, s=area, animated=True)
-            axlims = self.numparticles/10
+            axlims = self.numparticles/20
             if axlims < 30:
                 axlims = 30
             self.ax.axis([-axlims, axlims, -axlims, axlims])

@@ -18,11 +18,15 @@ class _IntPair(Structure):
         ("x", c_int),
         ("y", c_int)]
 
+_INTPAIR_PTR_T = POINTER(_IntPair)
+
 class _IntTriplet(Structure):
     _fields_ = [
         ("x", c_int),
         ("y", c_int),
         ("z", c_int)]
+
+_INTTRIPLET_PTR_T = POINTER(_IntTriplet)
 
 class _VectorWrapper(Structure):
     _fields_ = [
@@ -237,14 +241,29 @@ class Aggregate2D(object):
         -------
         An instance of `np.ndarray` containing aggregate particle co-ordinates.
         """
-        _IntPair_ptr_t = POINTER(_IntPair)
         aggsize = LIBDRP.vector_size(self._this._aggregate)
         ret = np.zeros((aggsize, 2), dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
-            aggp = cast(addr, _IntPair_ptr_t).contents
+            aggp = cast(addr, _INTPAIR_PTR_T).contents
             ret[idx][0] = aggp.x
             ret[idx][1] = aggp.y
+        return ret
+    def attractor_as_ndarray(self):
+        """Copies the internal (C) attractor structure to a `np.ndarray`
+        with `shape=(n, 2)` where `n` is the size of the attractor.
+
+        Returns
+        -------
+        An instance of `np.ndarray` containing the attractor particle co-ordinates.
+        """
+        attsize = LIBDRP.vector_size(self._this._attractor)
+        ret = np.zeros((attsize, 2), dtype=int)
+        for idx in np.arange(attsize):
+            addr = LIBDRP.vector_at(self._this._attractor, c_size_t(idx))
+            attp = cast(addr, _INTPAIR_PTR_T).contents
+            ret[idx][0] = attp.x
+            ret[idx][1] = attp.y
         return ret
     def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
@@ -290,7 +309,6 @@ class Aggregate2D(object):
         """
         LIBDRP.aggregate_2d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_2d_collision.restype = c_bool
-        _IntPair_ptr_t = POINTER(_IntPair)
         rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
         if rv_res == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_2d_reserve.")
@@ -323,7 +341,7 @@ class Aggregate2D(object):
             if LIBDRP.aggregate_2d_collision(self._handle, byref(curr), byref(prev)):
                 addr_rec = LIBDRP.vector_at(self._this._aggregate,
                                             c_size_t(count + self._this.att_size))
-                aggp_rec = cast(addr_rec, _IntPair_ptr_t).contents
+                aggp_rec = cast(addr_rec, _INTPAIR_PTR_T).contents
                 self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
                 self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
                 LIBDRP.vector_push_back(self._this._rsteps, byref(rsteps), sizeof(c_size_t))
@@ -522,15 +540,30 @@ class Aggregate3D(object):
         -------
         An instance of `np.ndarray` containing aggregate particle co-ordinates.
         """
-        _IntTriplet_ptr_t = POINTER(_IntTriplet)
         aggsize = LIBDRP.vector_size(self._this._aggregate)
         ret = np.zeros((aggsize, 3), dtype=int)
         for idx in np.arange(aggsize):
             addr = LIBDRP.vector_at(self._this._aggregate, c_size_t(idx))
-            aggp = cast(addr, _IntTriplet_ptr_t).contents
+            aggp = cast(addr, _INTTRIPLET_PTR_T).contents
             ret[idx][0] = aggp.x
             ret[idx][1] = aggp.y
             ret[idx][2] = aggp.z
+        return ret
+    def attractor_as_ndarray(self):
+        """Copies the internal (C) attractor structure to a `np.ndarray`
+        with `shape=(n, 3)` where `n` is the size of the attractor.
+
+        Returns
+        -------
+        An instance of `np.ndarray` containing the attractor particle co-ordinates.
+        """
+        attsize = LIBDRP.vector_size(self._this._attractor)
+        ret = np.zeros((attsize, 3), dtype=int)
+        for idx in np.arange(attsize):
+            addr = LIBDRP.vector_at(self._this._attractor, c_size_t(idx))
+            attp = cast(addr, _INTTRIPLET_PTR_T).contents
+            ret[idx][0] = attp.x
+            ret[idx][1] = attp.y
         return ret
     def generate(self, nparticles, display_progress=True):
         """Generates an aggregate consisting of `nparticles`.
@@ -576,7 +609,6 @@ class Aggregate3D(object):
         """
         LIBDRP.aggregate_3d_lattice_collision.restype = c_bool
         LIBDRP.aggregate_3d_collision.restype = c_bool
-        _IntTriplet_ptr_t = POINTER(_IntTriplet)
         rv_res = LIBDRP.aggregate_reserve(self._handle, c_size_t(nparticles))
         if rv_res == -1:
             raise MemoryError("vector reallocation failure occurred in aggregate_reserve.")
@@ -610,7 +642,7 @@ class Aggregate3D(object):
             if LIBDRP.aggregate_3d_collision(self._handle, byref(curr), byref(prev)):
                 addr_rec = LIBDRP.vector_at(self._this._aggregate,
                                             c_size_t(count + self._this.att_size))
-                aggp_rec = cast(addr_rec, _IntTriplet_ptr_t).contents
+                aggp_rec = cast(addr_rec, _INTTRIPLET_PTR_T).contents
                 self.__aggregate[count+self._this.att_size][0] = aggp_rec.x
                 self.__aggregate[count+self._this.att_size][1] = aggp_rec.y
                 self.__aggregate[count+self._this.att_size][2] = aggp_rec.z

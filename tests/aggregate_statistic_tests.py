@@ -79,7 +79,7 @@ def boundary_collisions_test(nparticles):
 
 def combined_test(nparticles, scalefactor=3.0, save=False, filename=None, plot_sma=True,
                   sma_period=None):
-    aggregate = drp.Aggregate2D(lattice_type=drp.LatticeType.SQUARE)
+    aggregate = drp.Aggregate2D(lattice_type=drp.LatticeType.TRIANGLE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
     fig = plt.figure(figsize=(14, 7))

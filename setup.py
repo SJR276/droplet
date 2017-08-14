@@ -1,10 +1,10 @@
+import os
 from setuptools import setup, find_packages
 from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
+HERE = os.path.abspath(os.path.dirname(__file__))
 
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(HERE, 'README.rst'), encoding='utf-8') as f:
     long_descr = f.read()
 
 setup(
@@ -16,12 +16,12 @@ setup(
     author='Samuel Rowlinson',
     license='LGPL-3.0',
     classifiers=[
-        'Development Status :: 3 - Alpha'
-        'Intended Audience :: Science/Research'
-        'Topic :: Scientific/Engineering :: Physics'
-        'Topic :: Scientific/Engineering :: Chemistry'
-        'Topic :: Scientific/Engineering :: Visualization'
-        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)'
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Scientific/Engineering :: Chemistry',
+        'Topic :: Scientific/Engineering :: Visualization',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',

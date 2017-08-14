@@ -80,7 +80,7 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, save=False, blittin
                               filename=filename)
     return sim
 
-point_attractor_test(2000, drp.LatticeType.TRIANGLE)
+#point_attractor_test(2000, drp.LatticeType.TRIANGLE)
 #line_attractor_test(1000, drp.LatticeType.SQUARE, 20)
 #circle_attractor_test(1000, drp.LatticeType.SQUARE, 10)
-#real_time_test(1000, drp.LatticeType.SQUARE)
+real_time_test(2000, drp.LatticeType.SQUARE)

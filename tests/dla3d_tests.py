@@ -26,6 +26,6 @@ def real_time_test(nparticles, lattice_type, stickiness=1.0, blitting=True,
                                autorotate=autorotate, save=save,
                                filename=filename)
 
-#point_attractor_test(1000, drp.LatticeType.SQUARE)
+point_attractor_test(2000, drp.LatticeType.TRIANGLE)
 #plane_attractor_test(2000, drp.LatticeType.SQUARE)
-real_time_test(1000, drp.LatticeType.TRIANGLE)
+#real_time_test(1000, drp.LatticeType.TRIANGLE)

@@ -41,7 +41,7 @@ The following simple case simulates a 2D DLA of 500 particles on a square-lattic
 .. code:: python
 
     import droplet as drp
-    aggregate = drp.DiffusionLimitedAggregate2D()
+    aggregate = drp.Aggregate2D()
     sim = drp.RealTimeAggregate2D(aggregate, nparticles=500, save=True,
                                   filename="../example_images/agg2dtest.gif")
 
@@ -54,7 +54,7 @@ Three-dimensional aggregates can also be simulated in real-time using similar sy
 .. code:: python
 
     import droplet as drp
-    aggregate = drp.DiffusionLimitedAggregate3D()
+    aggregate = drp.Aggregate3D()
     sim = drp.RealTimeAggregate3D(aggregate, nparticles=200, autorotate=True, save=True,
                                   filename="../example_images/agg3dtest.gif")
 
@@ -70,8 +70,8 @@ Statistics describing the generation of the aggregate can be tracked and plotted
     import matplotlib.pyplot as plt
     import droplet as drp
 
-    nparticles = 500
-    aggregate = drp.DiffusionLimitedAggregate2D(drp.LatticeType.TRIANGLE)
+    nparticles = 1000
+    aggregate = drp.Aggregate2D(drp.LatticeType.TRIANGLE)
     aggregate.generate(nparticles)
     prange = np.arange(nparticles)
     fig = plt.figure()
@@ -81,20 +81,37 @@ Statistics describing the generation of the aggregate can be tracked and plotted
         sub = fig.add_subplot(row, col, plotno)
         # plot required steps for each particle
         if plotno == 1:
-            sub.plot(prange, aggregate.required_steps)
+            sub.plot(prange, aggregate.required_steps, 'b',
+                     label=r"Required steps")
+            # period-10 simple moving average
+            rqd_steps_ma = simple_moving_average(aggregate.required_steps, 10)
+            sub.plot(rqd_steps_ma[:, 0], rqd_steps_ma[:, 1], 'r',
+                     label=r"10 particle SMA")
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Lattice Steps to Stick')
+            sub.legend()
         # plot boundary collisions for each particle
         elif plotno == 3:
-            sub.plot(prange, aggregate.boundary_collisions, 'r')
+            sub.plot(prange, aggregate.boundary_collisions, 'g',
+                     label=r"Boundary collisions")
+            bcoll_ma = simple_moving_average(aggregate.boundary_collisions, 10)
+            sub.plot(bcoll_ma[:, 0], bcoll_ma[:, 1], 'r',
+                     label=r"10 particle SMA")
             sub.set_xlabel('Aggregate Particle Index')
             sub.set_ylabel('Boundary Collisions')
+            sub.legend()
         # plot aggregate itself
         else:
-            sub.scatter(aggregate.x_coords, aggregate.y_coords, c=aggregate.colors)
+            agg = aggregate.as_ndarray()
+            max_x = aggregate.max_x
+            max_y = aggregate.max_y
+            sf = 3.0 # viewing scale-factor
+            sub.set_xlim(-max_x*sf, max_x*sf)
+            sub.set_ylim(-max_y*sf, max_y*sf)
+            sub.scatter(agg[:, 0], agg[:, 1], c=aggregate.colors,
+                        s=4*np.pi)
             sub.set_xlabel('x')
             sub.set_ylabel('y')
-        count += 1
     fig.show()
 
 From this example, the figure below is produced.
